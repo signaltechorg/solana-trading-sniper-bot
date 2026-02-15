@@ -319,8 +319,27 @@ describe('#indicators', () => {
         indicator: 'psar',
         options: { step: 0.02, max: 0.2 }
       });
-      assert.equal(result.psar.length > 0, true);
+      assert.equal(result.psar.length, candlesAsc.length);
       assert.equal(typeof result.psar[0], 'number');
+
+      // Check values are positive numbers (prices)
+      const lastValue = result.psar[result.psar.length - 1] as number;
+      assert.equal(lastValue > 0, true, 'PSAR value should be positive');
+      // 2018 BTC fixture: prices in $7,400-8,200 range
+      assert.equal(lastValue > 7000 && lastValue < 9000, true, `PSAR should be in fixture price range, got ${lastValue}`);
+    });
+
+    it('psar values change over time', async () => {
+      const result = await indicators.psar(candlesAsc, {
+        key: 'psar',
+        indicator: 'psar',
+        options: { step: 0.02, max: 0.2 }
+      });
+
+      // PSAR should have different values (not constant)
+      const values = result.psar as number[];
+      const uniqueValues = new Set(values.slice(-50).map(v => Math.round(v * 100) / 100));
+      assert.equal(uniqueValues.size > 1, true, 'PSAR should have varying values');
     });
   });
 
