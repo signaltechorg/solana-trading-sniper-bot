@@ -140,7 +140,10 @@ export class StrategyExecutor {
       });
 
       // Update lastSignal for next iteration
-      if (signal) {
+      // 'close' clears position state — strategies only see 'long', 'short', or undefined
+      if (signal === 'close') {
+        lastSignal = undefined;
+      } else if (signal) {
         lastSignal = signal;
       }
     }

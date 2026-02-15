@@ -102,20 +102,22 @@ export class DipCatcher extends StrategyBase<DipCatcherIndicators, DipCatcherOpt
       trend: isLong
     });
 
+    // HMA(low) crosses above BB lower from below
     if (hmaLow0 > bb0.lower && hmaLow1 < bb1.lower) {
-      if (!lastSignal && isLong) {
+      if (context.isFlat() && isLong) {
         signal.debugAll({ message: 'long_lower_cross' });
         signal.goLong();
-      } else if (lastSignal) {
+      } else if (!context.isFlat()) {
         signal.close();
       }
     }
 
+    // HMA(high) crosses below BB upper from above
     if (hmaHigh0 < bb0.upper && hmaHigh1 > bb1.upper) {
-      if (!lastSignal && !isLong) {
+      if (context.isFlat() && !isLong) {
         signal.debugAll({ message: 'short_upper_cross' });
         signal.goShort();
-      } else if (lastSignal) {
+      } else if (!context.isFlat()) {
         signal.close();
       }
     }
