@@ -11,3 +11,4 @@ export { BacktestV2Controller } from './backtest_v2_controller';
 export { LogsController } from './logs_controller';
 export { DesksController } from './desks_controller';
 export { TradingViewController } from './tradingview_controller';
+export { CcxtExchangesController } from './ccxt_exchanges_controller';

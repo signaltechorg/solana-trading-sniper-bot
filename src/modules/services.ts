@@ -82,6 +82,7 @@ import { BacktestV2Controller } from '../controller/backtest_v2_controller';
 import { LogsController } from '../controller';
 import { DesksController } from '../controller';
 import { TradingViewController } from '../controller';
+import { CcxtExchangesController } from '../controller';
 
 // Commands
 import { BacktestCommand } from '../command/backtest';
@@ -275,6 +276,7 @@ export interface Services {
   getLogsController(templateHelpers: any): LogsController;
   getDesksController(templateHelpers: any): DesksController;
   getTradingViewController(templateHelpers: any): TradingViewController;
+  getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getDeskService(): DeskService;
   getSymbolSearchService(): SymbolSearchService;
   getV2StrategyRegistry(): StrategyRegistry;
@@ -873,6 +875,10 @@ const services: Services = {
 
   getTradingViewController: function (templateHelpers: any): TradingViewController {
     return new TradingViewController(templateHelpers);
+  },
+
+  getCcxtExchangesController: function (templateHelpers: any): CcxtExchangesController {
+    return new CcxtExchangesController(templateHelpers);
   },
 
   getDeskService: function (): DeskService {

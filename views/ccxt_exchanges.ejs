@@ -1,0 +1,262 @@
+<!-- Content -->
+<div class="p-4">
+    <div class="max-w-[1800px] mx-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-semibold">CCXT Exchanges</h1>
+            <nav class="text-[13px] text-gray-500">
+                <a href="/" class="text-blue-600 hover:underline">Dashboard</a> / Tools / CCXT Exchanges
+            </nav>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Exchanges Table -->
+            <div class="bg-white overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="font-semibold">Exchanges (<%= exchanges.length %>)</h2>
+                    <input type="text" id="exchangeSearch" placeholder="Search exchange..." class="border border-gray-300 rounded px-3 py-1.5 text-[13px] w-48">
+                </div>
+                <div class="overflow-auto" style="max-height: calc(100vh - 280px);">
+                    <table class="w-full border-collapse text-[13px]">
+                        <thead class="sticky top-0 bg-gray-50">
+                            <tr>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">ID</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Name</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-center">Candles</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-center">Trade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exchangeTableBody">
+                            <% exchanges.forEach(function(exchange) { %>
+                                <tr class="exchange-row hover:bg-gray-100 cursor-pointer <%= selectedExchange === exchange.id ? 'bg-blue-50' : '' %>"
+                                    data-exchange-id="<%= exchange.id %>"
+                                    data-search="<%= exchange.id %> <%= exchange.name %>"
+                                    onclick="selectExchange('<%= exchange.id %>')">
+                                    <td class="border border-gray-200 px-3 py-2 whitespace-nowrap font-mono text-blue-600"><%= exchange.id %></td>
+                                    <td class="border border-gray-200 px-3 py-2 whitespace-nowrap"><%= exchange.name %></td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center">
+                                        <% if (exchange.has.fetchOHLCV) { %>
+                                            <i class="fas fa-check text-green-500"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-times text-gray-300"></i>
+                                        <% } %>
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center">
+                                        <% if (exchange.has.createOrder) { %>
+                                            <i class="fas fa-check text-green-500"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-times text-gray-300"></i>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Markets Table -->
+            <div class="bg-white overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="font-semibold">
+                        Markets
+                        <span id="marketsCount" class="text-gray-500 font-normal"></span>
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <select id="typeFilter" class="border border-gray-300 rounded px-3 py-1.5 text-[13px]" onchange="loadMarkets()">
+                            <option value="">All Types</option>
+                            <option value="spot">Spot</option>
+                            <option value="swap">Swap (Perpetual)</option>
+                            <option value="future">Future</option>
+                            <option value="margin">Margin</option>
+                        </select>
+                        <input type="text" id="marketSearch" placeholder="Search pair..." class="border border-gray-300 rounded px-3 py-1.5 text-[13px] w-48" oninput="filterMarkets()">
+                    </div>
+                </div>
+                <div class="overflow-auto" style="max-height: calc(100vh - 280px);">
+                    <table class="w-full border-collapse text-[13px]">
+                        <thead class="sticky top-0 bg-gray-50">
+                            <tr>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Symbol</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Base</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Quote</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-center">Type</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-center">Linear</th>
+                                <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Settle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marketTableBody">
+                            <% if (selectedExchange) { %>
+                                <tr>
+                                    <td colspan="6" class="border border-gray-200 px-3 py-8 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <div>Loading markets for <strong><%= selectedExchange %></strong>...</div>
+                                    </td>
+                                </tr>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="6" class="border border-gray-200 px-3 py-8 text-center text-gray-500">
+                                        <i class="fas fa-arrow-left text-2xl mb-2"></i>
+                                        <div>Select an exchange to view markets</div>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentExchange = <%= selectedExchange ? `"${selectedExchange}"` : 'null' %>;
+let allMarkets = [];
+
+function selectExchange(exchangeId) {
+    if (currentExchange === exchangeId) return;
+
+    currentExchange = exchangeId;
+
+    // Update URL without reload
+    history.pushState({}, '', '/tools/ccxt-exchanges/' + exchangeId);
+
+    // Highlight selected row
+    document.querySelectorAll('.exchange-row').forEach(row => {
+        row.classList.remove('bg-blue-50');
+        if (row.dataset.exchangeId === exchangeId) {
+            row.classList.add('bg-blue-50');
+        }
+    });
+
+    // Show loading
+    const tbody = document.getElementById('marketTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="border border-gray-200 px-3 py-8 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <div>Loading markets for <strong>${exchangeId}</strong>...</div>
+            </td>
+        </tr>
+    `;
+
+    loadMarkets();
+}
+
+async function loadMarkets() {
+    if (!currentExchange) return;
+
+    const typeFilter = document.getElementById('typeFilter').value;
+    const countEl = document.getElementById('marketsCount');
+    const tbody = document.getElementById('marketTableBody');
+
+    try {
+        const url = `/api/ccxt-exchanges/${currentExchange}/markets${typeFilter ? '?type=' + typeFilter : ''}`;
+        const response = await fetch(url);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const error = new Error(data.error || 'Failed to fetch markets');
+            error.requiresAuth = data.requiresAuth;
+            throw error;
+        }
+
+        allMarkets = data.markets || [];
+
+        countEl.textContent = `(${allMarkets.length} pairs)`;
+
+        renderMarkets(allMarkets);
+    } catch (error) {
+        const errorMsg = error.message || String(error);
+        const isAuthError = error.requiresAuth || errorMsg.includes('authentication') || errorMsg.includes('apiKey');
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="border border-gray-200 px-3 py-8 text-center ${isAuthError ? 'text-orange-500' : 'text-red-500'}">
+                    <i class="fas ${isAuthError ? 'fa-lock' : 'fa-exclamation-triangle'} text-2xl mb-2"></i>
+                    <div>${isAuthError ? 'This exchange requires API authentication' : 'Error loading markets'}</div>
+                    <div class="text-xs text-gray-400 mt-1">${errorMsg}</div>
+                </td>
+            </tr>
+        `;
+        countEl.textContent = '';
+    }
+}
+
+function renderMarkets(markets) {
+    const tbody = document.getElementById('marketTableBody');
+
+    if (markets.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="border border-gray-200 px-3 py-8 text-center text-gray-500">
+                    No markets found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = markets.map(m => `
+        <tr class="market-row hover:bg-gray-100" data-search="${m.symbol} ${m.base} ${m.quote}">
+            <td class="border border-gray-200 px-3 py-2 whitespace-nowrap font-mono text-blue-600">${escapeHtml(m.symbol)}</td>
+            <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">${escapeHtml(m.base)}</td>
+            <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">${escapeHtml(m.quote)}</td>
+            <td class="border border-gray-200 px-3 py-2 text-center">
+                ${getTypeBadge(m)}
+            </td>
+            <td class="border border-gray-200 px-3 py-2 text-center">
+                ${m.contract ? (m.linear ? '<i class="fas fa-check text-green-500" title="Linear"></i>' : '<i class="fas fa-times text-red-400" title="Inverse"></i>') : '<span class="text-gray-300">-</span>'}
+            </td>
+            <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">${m.settle || '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function getTypeBadge(m) {
+    const types = [];
+    if (m.spot) types.push('<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs mr-1">Spot</span>');
+    if (m.margin) types.push('<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs mr-1">Margin</span>');
+    if (m.swap) types.push('<span class="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs mr-1">Swap</span>');
+    if (m.future) types.push('<span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs">Future</span>');
+
+    return types.length > 0 ? types.join('') : '<span class="text-gray-400">-</span>';
+}
+
+function filterMarkets() {
+    const search = document.getElementById('marketSearch').value.toLowerCase();
+
+    if (!search) {
+        renderMarkets(allMarkets);
+        return;
+    }
+
+    const filtered = allMarkets.filter(m =>
+        m.symbol.toLowerCase().includes(search) ||
+        m.base.toLowerCase().includes(search) ||
+        m.quote.toLowerCase().includes(search)
+    );
+
+    renderMarkets(filtered);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Exchange search filter
+document.getElementById('exchangeSearch').addEventListener('input', function() {
+    const search = this.value.toLowerCase();
+
+    document.querySelectorAll('.exchange-row').forEach(row => {
+        const searchData = row.dataset.search.toLowerCase();
+        row.style.display = searchData.includes(search) ? '' : 'none';
+    });
+});
+
+// Load markets if exchange is pre-selected
+<% if (selectedExchange) { %>
+loadMarkets();
+<% } %>
+</script>
