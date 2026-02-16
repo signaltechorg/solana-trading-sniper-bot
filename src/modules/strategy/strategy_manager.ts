@@ -14,6 +14,33 @@ import type { Logger } from '../services';
 import type { TechnicalAnalysisValidator } from '../../utils/technical_analysis_validator';
 import type { ExchangeCandleCombine } from '../exchange/exchange_candle_combine';
 
+// Statically import all built-in strategies for bundling
+import { AwesomeOscillatorCrossZero } from './strategies/awesome_oscillator_cross_zero';
+import { CCI } from './strategies/cci';
+import { CciMacd } from './strategies/cci_macd';
+import { DcaDipper } from './strategies/dca_dipper/dca_dipper';
+import { DipCatcher } from './strategies/dip_catcher/dip_catcher';
+import { Macd } from './strategies/macd';
+import { Noop } from './strategies/noop';
+import { ObvPumpDump } from './strategies/obv_pump_dump';
+import { PARABOLIC } from './strategies/parabolicsar';
+import { PivotReversalStrategy } from './strategies/pivot_reversal_strategy';
+import { Trader } from './strategies/trader';
+
+const builtInStrategies: StrategyInfo[] = [
+  new AwesomeOscillatorCrossZero(),
+  new CCI(),
+  new CciMacd(),
+  new DcaDipper(),
+  new DipCatcher(),
+  new Macd(),
+  new Noop(),
+  new ObvPumpDump(),
+  new PARABOLIC(),
+  new PivotReversalStrategy(),
+  new Trader(),
+];
+
 export interface BacktestColumn {
   value: string | ((row: Record<string, any>) => any);
   type?: string;
@@ -59,32 +86,29 @@ export class StrategyManager {
       return this.strategies;
     }
 
-    const strategies: StrategyInfo[] = [];
+    // Start with built-in strategies (statically imported for bundling)
+    const strategies: StrategyInfo[] = [...builtInStrategies];
 
-    const dirs = [`${__dirname}/strategies`, `${this.projectDir}/var/strategies`];
+    // Only load custom strategies from var/strategies (user-defined)
+    const varStrategiesDir = `${this.projectDir}/var/strategies`;
 
-    const recursiveReadDirSyncWithDirectoryOnly = (p: string, a: string[] = []): string[] => {
-      if (fs.statSync(p).isDirectory()) {
-        fs.readdirSync(p)
-          .filter(f => !f.startsWith('.') && fs.statSync(path.join(p, f)).isDirectory())
-          .map(f => recursiveReadDirSyncWithDirectoryOnly(a[a.push(path.join(p, f)) - 1], a));
-      }
+    if (fs.existsSync(varStrategiesDir)) {
+      const supportedExtensions = ['.js']; // Only .js for bundled runtime
 
-      return a;
-    };
+      const recursiveReadDirSyncWithDirectoryOnly = (p: string, a: string[] = []): string[] => {
+        if (fs.statSync(p).isDirectory()) {
+          fs.readdirSync(p)
+            .filter(f => !f.startsWith('.') && fs.statSync(path.join(p, f)).isDirectory())
+            .map(f => recursiveReadDirSyncWithDirectoryOnly(a[a.push(path.join(p, f)) - 1], a));
+        }
+        return a;
+      };
 
-    const supportedExtensions = ['.ts', '.js'];
-
-    dirs.forEach(dir => {
-      if (!fs.existsSync(dir)) {
-        return;
-      }
-
-      fs.readdirSync(dir).forEach(file => {
+      fs.readdirSync(varStrategiesDir).forEach(file => {
         const ext = path.extname(file);
         if (supportedExtensions.includes(ext)) {
           const baseName = file.substring(0, file.length - ext.length);
-          const modulePath = path.join(dir, baseName);
+          const modulePath = path.join(varStrategiesDir, baseName);
           try {
             const mod = require(modulePath);
             const StrategyClass = mod.default || mod;
@@ -93,14 +117,13 @@ export class StrategyManager {
             if (typeof instance.getName !== 'function') return;
             strategies.push(instance);
           } catch (e) {
-            // Skip files that are not v1 strategies (e.g. v2 strategies)
+            // Skip invalid strategy files
           }
         }
       });
 
-      // Allow strategies to be wrapped by any folder depth:
-      // "foo/bar" => "foo/bar/bar.ts" or "foo/bar/bar.js"
-      recursiveReadDirSyncWithDirectoryOnly(dir).forEach(folder => {
+      // Allow strategies to be wrapped by any folder depth
+      recursiveReadDirSyncWithDirectoryOnly(varStrategiesDir).forEach(folder => {
         const folderName = path.basename(folder);
 
         for (const ext of supportedExtensions) {
@@ -116,13 +139,13 @@ export class StrategyManager {
               if (typeof instance.getName !== 'function') break;
               strategies.push(instance);
             } catch (e) {
-              // Skip files that are not v1 strategies (e.g. v2 strategies)
+              // Skip invalid strategy files
             }
             break;
           }
         }
       });
-    });
+    }
 
     return (this.strategies = strategies);
   }

@@ -152,8 +152,17 @@ export class CcxtExchangesController extends BaseController {
   }
 
   private getAllCcxtExchanges(): ExchangeInfo[] {
-    // Get exchange list directly from ccxt.exchanges array
-    const exchangeIds = ccxt.exchanges as unknown as string[];
+    // Get exchange list - try ccxt.exchanges first, fallback to Object.keys
+    let exchangeIds: string[];
+    if (Array.isArray((ccxt as any).exchanges)) {
+      exchangeIds = (ccxt as any).exchanges;
+    } else {
+      // Fallback: get all exchange class names from ccxt object
+      exchangeIds = Object.keys(ccxt).filter(key => {
+        const val = (ccxt as any)[key];
+        return typeof val === 'function' && val.prototype && key !== 'Exchange' && key[0] === key[0].toLowerCase();
+      });
+    }
 
     return exchangeIds.map(id => {
       try {

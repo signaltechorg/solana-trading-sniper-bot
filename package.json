@@ -87,20 +87,24 @@
     "url": "https://github.com/Haehnchen/crypto-trading-bot.git"
   },
   "scripts": {
-    "start": "npm run build && node dist/index.js trade",
+    "start": "npm run build:prod && node dist/index.js trade",
     "start:dev": "ts-node index.ts trade",
     "start:watch": "ts-node --watch index.ts trade",
     "postinstall": "patch-package",
     "test": "mocha --require ts-node/register 'test/**/*.test.ts'",
     "test:js": "mocha 'test/**/*.test.js'",
-    "build": "tsc",
+    "build": "node esbuild.config.mjs",
+    "build:tsc": "tsc",
+    "build:prod": "node esbuild.config.mjs --prod",
+    "build:watch": "node esbuild.config.mjs --watch",
     "setup": "pm2 deploy ecosystem.config.js production setup",
     "deploy": "pm2 deploy ecosystem.config.js production",
-    "backtest": "npm run build && node dist/index.js backtest"
+    "backtest": "npm run build:prod && node dist/index.js backtest"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/request": "^2.48.13",
+    "esbuild": "^0.27.3",
     "eslint": "^9.22.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",
