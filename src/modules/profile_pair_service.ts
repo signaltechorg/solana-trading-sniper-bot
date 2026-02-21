@@ -118,7 +118,7 @@ export class ProfilePairService {
   /**
    * Get markets for an exchange with caching (public data, no auth needed)
    */
-  private async getMarketsForExchange(exchangeName: string): Promise<any[]> {
+  async getMarketsForExchange(exchangeName: string): Promise<any[]> {
     const cacheKey = `market:${exchangeName}`;
     const cached = this.cache.get(cacheKey) as any[] | undefined;
     if (cached) {

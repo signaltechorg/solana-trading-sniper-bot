@@ -143,6 +143,7 @@ export class Http {
 
     // Register all controller routes to the main router with full paths
     this.services.getDashboardController(this.templateHelpers).registerRoutes(mainRouter);
+    this.services.getDashboardSettingsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getTradesController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getOrdersController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getSignalsController(this.templateHelpers).registerRoutes(mainRouter);
@@ -162,5 +163,8 @@ export class Http {
     app.listen(port, ip);
 
     console.log(`Webserver listening on: http://${ip}:${port}`);
+
+    // Prefill candles for configured dashboard pairs on startup
+    this.services.getDashboardSettingsController(this.templateHelpers).enqueuePrefill();
   }
 }

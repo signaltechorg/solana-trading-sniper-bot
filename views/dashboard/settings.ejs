@@ -1,0 +1,368 @@
+<!-- Content -->
+<div class="p-4">
+    <div class="max-w-[900px] mx-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-semibold">Dashboard Settings</h1>
+            <a href="/" class="text-gray-600 hover:text-gray-800 cursor-pointer">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <% if (typeof alert !== 'undefined' && alert) { %>
+            <%- include('../components/alert', { alert }) %>
+        <% } %>
+
+        <form action="/dashboard/settings" method="POST" class="space-y-6" id="settingsForm">
+
+            <!-- Periods Section -->
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-lg font-semibold mb-4 pb-2 border-b">Periods</h2>
+                <div>
+                    <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">Active Periods</label>
+                    <select id="periods" name="periods" multiple class="w-full">
+                        <% periods.forEach(function(period) { %>
+                            <option value="<%= period.value %>" <%= config.periods.includes(period.value) ? 'selected' : '' %>><%= period.label %></option>
+                        <% }); %>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Pairs Section -->
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-lg font-semibold mb-4 pb-2 border-b">Pairs</h2>
+
+                <!-- Add Pair Row -->
+                <div class="flex gap-2 mb-4">
+                    <select id="newPairExchange" class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <% exchanges.forEach(function(ex) { %>
+                            <option value="<%= ex.id %>"><%= ex.name %></option>
+                        <% }); %>
+                    </select>
+                    <div class="flex-1 relative">
+                        <input type="text" id="newPairSymbol"
+                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Search symbol... (e.g. BTC/USDT)"
+                               autocomplete="off">
+                        <div id="symbolDropdown" class="absolute left-0 right-0 top-full bg-white border border-gray-300 rounded mt-1 shadow-lg hidden z-10 max-h-60 overflow-y-auto">
+                            <div id="symbolLoading" class="hidden px-3 py-2 text-sm text-gray-400 flex items-center gap-2">
+                                <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                </svg>
+                                Loading symbols...
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addPair()"
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm whitespace-nowrap cursor-pointer">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </div>
+
+                <!-- Pairs Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-sm">
+                        <thead>
+                            <tr>
+                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 w-8"></th>
+                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Exchange</th>
+                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Symbol</th>
+                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-center w-20">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pairsTableBody">
+                            <% if (config.pairs && config.pairs.length > 0) { %>
+                                <% config.pairs.forEach(function(pair, index) { %>
+                                    <tr class="hover:bg-gray-100 pair-row" draggable="true" data-index="<%= index %>">
+                                        <td class="border border-gray-200 px-2 py-1 text-gray-400 cursor-move drag-handle">
+                                            <i class="fas fa-grip-vertical"></i>
+                                        </td>
+                                        <td class="border border-gray-200 px-2 py-1">
+                                            <input type="hidden" name="pairs[<%= index %>][exchange]" value="<%= pair.exchange %>">
+                                            <span class="font-mono"><%= pair.exchange %></span>
+                                        </td>
+                                        <td class="border border-gray-200 px-2 py-1">
+                                            <input type="hidden" name="pairs[<%= index %>][symbol]" value="<%= pair.symbol %>">
+                                            <span class="font-mono"><%= pair.symbol %></span>
+                                        </td>
+                                        <td class="border border-gray-200 px-2 py-1 text-center">
+                                            <button type="button" onclick="removePair(this)" class="text-red-600 hover:text-red-800 cursor-pointer">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr id="noPairsRow">
+                                    <td colspan="4" class="border border-gray-200 px-2 py-8 text-center text-gray-400">
+                                        No pairs configured. Add your first pair above.
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex justify-end gap-3">
+                <a href="/" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
+                    <i class="fas fa-save mr-1"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let pairIndex = <%= config.pairs ? config.pairs.length : 0 %>;
+let draggedRow = null;
+let symbolInput = document.getElementById('newPairSymbol');
+let exchangeSelect = document.getElementById('newPairExchange');
+let symbolDropdown = document.getElementById('symbolDropdown');
+let selectedIndex = -1;
+let symbols = [];
+
+// Initialize TomSelect for periods
+new TomSelect('#periods', {
+    plugins: ['remove_button'],
+    persist: false,
+    create: false,
+    placeholder: 'Select periods...',
+    onInitialize: function() {
+        this.wrapper.classList.add('border', 'border-gray-300', 'rounded', 'text-sm');
+    }
+});
+
+// Symbol autocomplete
+let debounceTimer;
+const symbolLoading = document.getElementById('symbolLoading');
+
+symbolInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const query = symbolInput.value.trim();
+    if (query.length < 1) {
+        hideDropdown();
+        return;
+    }
+    showLoading();
+    debounceTimer = setTimeout(function() {
+        const exchange = exchangeSelect.value;
+        fetch('/dashboard/api/symbols?exchange=' + encodeURIComponent(exchange) + '&q=' + encodeURIComponent(query))
+            .then(response => response.json())
+            .then(data => {
+                symbols = data;
+                renderDropdown();
+            })
+            .catch(() => hideDropdown());
+    }, 400);
+});
+
+// Reset dropdown when exchange changes
+exchangeSelect.addEventListener('change', function() {
+    symbolInput.value = '';
+    hideDropdown();
+    symbolInput.focus();
+});
+
+symbolInput.addEventListener('keydown', function(e) {
+    const items = symbolDropdown.querySelectorAll('.dropdown-item');
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && items[selectedIndex]) {
+            selectSymbol(symbols[selectedIndex].value);
+        } else {
+            addPair();
+        }
+    } else if (e.key === 'Escape') {
+        hideDropdown();
+    }
+});
+
+symbolInput.addEventListener('blur', function() {
+    setTimeout(hideDropdown, 200);
+});
+
+function showLoading() {
+    symbolLoading.classList.remove('hidden');
+    symbolDropdown.classList.remove('hidden');
+    symbolDropdown.querySelectorAll('.dropdown-item').forEach(el => el.remove());
+    selectedIndex = -1;
+    symbols = [];
+}
+
+function renderDropdown() {
+    symbolLoading.classList.add('hidden');
+    if (symbols.length === 0) {
+        hideDropdown();
+        return;
+    }
+    selectedIndex = -1;
+    const items = symbols.map((s, i) =>
+        '<div class="dropdown-item px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm font-mono" data-index="' + i + '">' +
+        escapeHtml(s.text) +
+        '</div>'
+    ).join('');
+    symbolLoading.insertAdjacentHTML('afterend', items);
+    symbolDropdown.classList.remove('hidden');
+
+    symbolDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('mousedown', function() {
+            const index = parseInt(this.dataset.index);
+            selectSymbol(symbols[index].value);
+        });
+    });
+}
+
+function updateSelection(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('bg-blue-50', i === selectedIndex);
+    });
+    if (selectedIndex >= 0) {
+        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function selectSymbol(value) {
+    symbolInput.value = value;
+    hideDropdown();
+    symbolInput.focus();
+}
+
+function hideDropdown() {
+    symbolDropdown.classList.add('hidden');
+    symbolLoading.classList.add('hidden');
+    symbolDropdown.querySelectorAll('.dropdown-item').forEach(el => el.remove());
+    symbols = [];
+    selectedIndex = -1;
+}
+
+// Drag and drop
+const tbody = document.getElementById('pairsTableBody');
+
+tbody.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('pair-row')) {
+        draggedRow = e.target;
+        e.target.style.opacity = '0.85';
+    }
+});
+
+tbody.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('pair-row')) {
+        e.target.style.opacity = '1';
+        draggedRow = null;
+        updatePairIndexes();
+    }
+});
+
+tbody.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    const row = e.target.closest('.pair-row');
+    if (row && draggedRow && row !== draggedRow) {
+        const rect = row.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+            row.parentNode.insertBefore(draggedRow, row);
+        } else {
+            row.parentNode.insertBefore(draggedRow, row.nextSibling);
+        }
+    }
+});
+
+function updatePairIndexes() {
+    const rows = document.querySelectorAll('.pair-row');
+    rows.forEach((row, index) => {
+        const exchangeInput = row.querySelector('input[name*="[exchange]"]');
+        const symbolInput = row.querySelector('input[name*="[symbol]"]');
+        if (exchangeInput) exchangeInput.name = 'pairs[' + index + '][exchange]';
+        if (symbolInput) symbolInput.name = 'pairs[' + index + '][symbol]';
+    });
+}
+
+function addPair() {
+    const symbol = symbolInput.value.trim();
+    const exchange = exchangeSelect.value;
+
+    if (!symbol) {
+        symbolInput.focus();
+        return;
+    }
+
+    // Check for duplicates
+    const existingSymbols = document.querySelectorAll('input[name*="[symbol]"]');
+    for (let i = 0; i < existingSymbols.length; i++) {
+        const existingExchange = existingSymbols[i].closest('tr').querySelector('input[name*="[exchange]"]');
+        if (existingSymbols[i].value.toLowerCase() === symbol.toLowerCase() &&
+            existingExchange && existingExchange.value === exchange) {
+            alert('This pair already exists in the list.');
+            symbolInput.value = '';
+            symbolInput.focus();
+            return;
+        }
+    }
+
+    const noPairsRow = document.getElementById('noPairsRow');
+    if (noPairsRow) noPairsRow.remove();
+
+    const row = document.createElement('tr');
+    row.className = 'hover:bg-gray-100 pair-row';
+    row.draggable = true;
+    row.innerHTML = `
+        <td class="border border-gray-200 px-2 py-1 text-gray-400 cursor-move drag-handle">
+            <i class="fas fa-grip-vertical"></i>
+        </td>
+        <td class="border border-gray-200 px-2 py-1">
+            <input type="hidden" name="pairs[${pairIndex}][exchange]" value="${escapeHtml(exchange)}">
+            <span class="font-mono">${escapeHtml(exchange)}</span>
+        </td>
+        <td class="border border-gray-200 px-2 py-1">
+            <input type="hidden" name="pairs[${pairIndex}][symbol]" value="${escapeHtml(symbol)}">
+            <span class="font-mono">${escapeHtml(symbol)}</span>
+        </td>
+        <td class="border border-gray-200 px-2 py-1 text-center">
+            <button type="button" onclick="removePair(this)" class="text-red-600 hover:text-red-800 cursor-pointer">
+                <i class="fas fa-times"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(row);
+    pairIndex++;
+    symbolInput.value = '';
+    symbolInput.focus();
+    hideDropdown();
+    updatePairIndexes();
+}
+
+function removePair(button) {
+    button.closest('tr').remove();
+
+    if (tbody.querySelectorAll('.pair-row').length === 0) {
+        tbody.innerHTML = `
+            <tr id="noPairsRow">
+                <td colspan="4" class="border border-gray-200 px-2 py-8 text-center text-gray-400">
+                    No pairs configured. Add your first pair above.
+                </td>
+            </tr>
+        `;
+    }
+    updatePairIndexes();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>

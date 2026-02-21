@@ -25,12 +25,12 @@ export class Ta {
     private tickers: Tickers
   ) {}
 
-  async getTaForPeriods(periods: string[]): Promise<any> {
+  async getTaForPeriods(periods: string[], symbols: TaSymbol[]): Promise<any> {
     const promises: Promise<any>[] = [];
 
     // filter same pair on different exchanges; last wins
     const uniqueSymbols: Record<string, TaSymbol> = {};
-    this.instances.symbols.forEach((symbol: TaSymbol) => {
+    symbols.forEach((symbol: TaSymbol) => {
       uniqueSymbols[symbol.symbol] = symbol;
     });
 
@@ -85,6 +85,18 @@ export class Ta {
     });
 
     const x: Record<string, any> = {};
+
+    // Pre-populate all symbols so they appear even without candle data
+    Object.values(uniqueSymbols).forEach((symbol: TaSymbol) => {
+      const liveTicker = this.tickers.get(symbol.exchange, symbol.symbol);
+      x[symbol.symbol] = {
+        symbol: symbol.symbol,
+        exchange: symbol.exchange,
+        ticker: liveTicker || { bid: 0, ask: 0 },
+        ta: {},
+        percentage_change: undefined
+      };
+    });
 
     v.forEach((v: any) => {
       if (!x[v.symbol]) {

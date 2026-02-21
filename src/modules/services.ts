@@ -41,6 +41,8 @@ import { PairStateExecution } from './pairs/pair_state_execution';
 import { PairConfig } from './pairs/pair_config';
 import { SystemUtil } from './system/system_util';
 import { DeskService } from './system/desk_service';
+import { DashboardConfigService } from './system/dashboard_config_service';
+import { CcxtCandlePrefillService } from './system/ccxt_candle_prefill_service';
 import { SymbolSearchService } from './system/symbol_search_service';
 import { ProfileService } from '../profile/profile_service';
 import { ProfilePairService } from './profile_pair_service';
@@ -81,6 +83,7 @@ import { BacktestController } from '../controller/backtest_controller';
 import { LogsController } from '../controller';
 import { DesksController } from '../controller';
 import { CcxtExchangesController } from '../controller';
+import { DashboardSettingsController } from '../controller';
 import { ProfileController } from '../controller';
 
 // Commands
@@ -209,6 +212,8 @@ let tickerRepository: TickerRepository;
 let pairConfig: PairConfig;
 let throttler: Throttler;
 let deskService: DeskService;
+let dashboardConfigService: DashboardConfigService;
+let ccxtCandlePrefillService: CcxtCandlePrefillService;
 let symbolSearchService: SymbolSearchService;
 let v2StrategyRegistry: StrategyRegistry;
 let strategyExecutor: StrategyExecutor;
@@ -274,6 +279,9 @@ export interface Services {
   getConfig(): Config;
   // Controllers
   getDashboardController(templateHelpers: any): DashboardController;
+  getDashboardSettingsController(templateHelpers: any): DashboardSettingsController;
+  getDashboardConfigService(): DashboardConfigService;
+  getCcxtCandlePrefillService(): CcxtCandlePrefillService;
   getTradesController(templateHelpers: any): TradesController;
   getOrdersController(templateHelpers: any): OrdersController;
   getSignalsController(templateHelpers: any): SignalsController;
@@ -835,7 +843,25 @@ const services: Services = {
 
   // Controller factory methods
   getDashboardController: function (templateHelpers: any): DashboardController {
-    return new DashboardController(templateHelpers, this.getTa(), this.getSystemUtil());
+    return new DashboardController(templateHelpers, this.getTa(), this.getDashboardConfigService());
+  },
+
+  getDashboardSettingsController: function (templateHelpers: any): DashboardSettingsController {
+    return new DashboardSettingsController(templateHelpers, this.getDashboardConfigService(), this.getProfilePairService(), this.getCcxtCandlePrefillService());
+  },
+
+  getDashboardConfigService: function (): DashboardConfigService {
+    if (dashboardConfigService) {
+      return dashboardConfigService;
+    }
+    return (dashboardConfigService = new DashboardConfigService());
+  },
+
+  getCcxtCandlePrefillService: function (): CcxtCandlePrefillService {
+    if (ccxtCandlePrefillService) {
+      return ccxtCandlePrefillService;
+    }
+    return (ccxtCandlePrefillService = new CcxtCandlePrefillService(this.getCandleImporter(), this.getLogger()));
   },
 
   getTradesController: function (templateHelpers: any): TradesController {

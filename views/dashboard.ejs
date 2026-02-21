@@ -1,7 +1,12 @@
 <!-- Content -->
 <div class="p-4">
     <div class="max-w-[1800px] mx-auto">
-        <h1 class="text-2xl font-semibold mb-4">Dashboard</h1>
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-semibold">Dashboard</h1>
+            <a href="/dashboard/settings" class="text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-3 py-1 hover:bg-gray-50 cursor-pointer">
+                <i class="fas fa-cog mr-1"></i> Configure
+            </a>
+        </div>
 
         <div class="bg-white overflow-x-auto">
             <table class="w-full border-collapse text-[13px]">
@@ -46,7 +51,7 @@
                             </i>
                             <a target="blank" href="/tradingview/<%= row.exchange %>:<%= encodeURIComponent(row.symbol) %>" class="text-blue-600 hover:underline"><%= row.symbol %></a>
                         </td>
-                        <td class="border border-gray-200 px-2 py-1 whitespace-nowrap"><%= priceFormat(row.ticker.bid) %></td>
+                        <td class="border border-gray-200 px-2 py-1 whitespace-nowrap"><%= row.ticker.bid ? priceFormat(row.ticker.bid) : '-' %></td>
                         <td class="border border-gray-200 px-2 py-1 whitespace-nowrap">
                             <% if (row.percentage_change) { %>
                                 <span class="<%= row.percentage_change > 0 ? 'text-green-600' : 'text-red-600' %>"><%= Math.round(row.percentage_change * 10) / 10 %> %</span>
@@ -143,3 +148,4 @@
         </div>
     </div>
 </div>
+
