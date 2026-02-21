@@ -71,6 +71,14 @@ export async function placeLimitOrder(
   const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
   const roundedPrice = roundToPrecision(params.price, market.precision?.price);
 
+  if (!roundedBaseAmount || roundedBaseAmount <= 0) {
+    const minAmount = market.limits?.amount?.min;
+    throw new Error(
+      `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
+      (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
+    );
+  }
+
   const order = await exchange.createOrder(
     params.pair,
     'limit',
@@ -126,6 +134,14 @@ export async function placeMarketOrder(
 
   // Round amount to precision
   const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
+
+  if (!roundedBaseAmount || roundedBaseAmount <= 0) {
+    const minAmount = market.limits?.amount?.min;
+    throw new Error(
+      `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
+      (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
+    );
+  }
 
   const order = await exchange.createOrder(
     params.pair,
