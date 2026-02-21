@@ -22,9 +22,9 @@ export abstract class BaseController implements Controller {
   protected render(res: express.Response, view: string, options: Record<string, any> = {}): void {
     res.render(view, {
       ...options,
-      assetVersion: this.templateHelpers.assetVersion,
-      nodeVersion: this.templateHelpers.nodeVersion,
-      memoryUsage: this.templateHelpers.memoryUsage
+      assetVersion: this.templateHelpers.assetVersion(),
+      nodeVersion: this.templateHelpers.nodeVersion(),
+      memoryUsage: this.templateHelpers.memoryUsage()
     });
   }
 }
