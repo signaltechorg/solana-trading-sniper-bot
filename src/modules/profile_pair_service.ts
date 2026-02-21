@@ -14,16 +14,67 @@ export interface ProfilePairResult {
   errors: string[];
 }
 
+interface CoinGeckoCoin {
+  symbol: string;
+  name: string;
+  market_cap_rank: number;
+}
+
 export class ProfilePairService {
-  // Cache markets per exchange for 5 minutes (300 seconds)
   private marketCache: any;
+  private coinGeckoCache: any;
 
   constructor() {
+    // Cache markets per exchange for 5 minutes
     this.marketCache = new NodeCache({
       stdTTL: 300,
       checkperiod: 60,
       useClones: false
     });
+
+    // Cache CoinGecko data for 6 hours (21600 seconds)
+    this.coinGeckoCache = new NodeCache({
+      stdTTL: 21600,
+      checkperiod: 3600,
+      useClones: false
+    });
+  }
+
+  /**
+   * Fetch top coins from CoinGecko (cached for 6 hours)
+   */
+  private async fetchCoinGeckoRankings(): Promise<Map<string, number>> {
+    const cacheKey = 'coingecko_rankings';
+    const cached = this.coinGeckoCache.get(cacheKey) as Map<string, number> | undefined;
+    if (cached) {
+      return cached;
+    }
+
+    const rankings = new Map<string, number>();
+
+    try {
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1'
+      );
+
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const coins: CoinGeckoCoin[] = await response.json();
+
+      for (const coin of coins) {
+        // Store symbol -> rank (lower is better)
+        rankings.set(coin.symbol.toUpperCase(), coin.market_cap_rank);
+      }
+
+      console.log(`[ProfilePairService] Loaded ${rankings.size} coin rankings from CoinGecko`);
+    } catch (e) {
+      console.error('[ProfilePairService] Failed to fetch CoinGecko rankings:', e);
+    }
+
+    this.coinGeckoCache.set(cacheKey, rankings);
+    return rankings;
   }
 
   /**
@@ -32,6 +83,9 @@ export class ProfilePairService {
   async getAllPairs(profiles: Profile[]): Promise<ProfilePairResult> {
     const allPairs: ProfilePair[] = [];
     const errors: string[] = [];
+
+    // Fetch CoinGecko rankings once for all pairs
+    const rankings = await this.fetchCoinGeckoRankings();
 
     for (const profile of profiles) {
       try {
@@ -54,8 +108,16 @@ export class ProfilePairService {
       }
     }
 
-    // Sort by profile:pair
+    // Sort by CoinGecko market cap rank (asc), then by pair name (asc)
     allPairs.sort((a, b) => {
+      const rankA = rankings.get(a.pair.split(':')[0].split('/')[0].toUpperCase()) || 9999;
+      const rankB = rankings.get(b.pair.split(':')[0].split('/')[0].toUpperCase()) || 9999;
+
+      if (rankA !== rankB) {
+        return rankA - rankB; // Lower rank (more popular) first
+      }
+
+      // Same rank - sort alphabetically by profile:pair
       const keyA = `${a.profileName}:${a.pair}`;
       const keyB = `${b.profileName}:${b.pair}`;
       return keyA.localeCompare(keyB);
@@ -114,6 +176,7 @@ export class ProfilePairService {
       this.marketCache.del(keys);
     } else {
       this.marketCache.flushAll();
+      this.coinGeckoCache.flushAll();
     }
   }
 }
