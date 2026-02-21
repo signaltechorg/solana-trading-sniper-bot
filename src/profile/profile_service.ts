@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ccxt from 'ccxt';
-import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, RecentOrderPair, Bot, BotConfig } from './types';
+import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, Bot, BotConfig } from './types';
 import {
   fetchMarketData,
   placeLimitOrder,
@@ -201,9 +201,6 @@ export class ProfileService {
   async placeOrder(profileId: string, params: OrderParams): Promise<OrderResult> {
     const exchange = this.getExchangeForProfile(profileId);
 
-    // Update recent pairs
-    this.updateRecentOrderPair(profileId, params.pair);
-
     if (params.type === 'market') {
       return placeMarketOrder(exchange, params);
     } else {
@@ -241,53 +238,6 @@ export class ProfileService {
   async cancelAllOrders(profileId: string, pair: string): Promise<void> {
     const exchange = this.getExchangeForProfile(profileId);
     return cancelAllOrdersCCXT(exchange, pair);
-  }
-
-  // Recent order pairs management
-
-  /**
-   * Get recently used Profile:Pair combinations
-   */
-  getRecentOrderPairs(): RecentOrderPair[] {
-    const config = this.readConfig();
-    return config.recentOrderPairs || [];
-  }
-
-  /**
-   * Update a recent order pair (add or update timestamp)
-   */
-  updateRecentOrderPair(profileId: string, pair: string): void {
-    const config = this.readConfig();
-    const profile = this.getProfile(profileId);
-    if (!profile) return;
-
-    if (!config.recentOrderPairs) {
-      config.recentOrderPairs = [];
-    }
-
-    // Find existing entry
-    const existingIndex = config.recentOrderPairs.findIndex(
-      (r) => r.profileId === profileId && r.pair === pair
-    );
-
-    const entry: RecentOrderPair = {
-      profileId,
-      profileName: profile.name,
-      pair,
-      lastUsed: new Date().toISOString(),
-    };
-
-    if (existingIndex >= 0) {
-      config.recentOrderPairs[existingIndex] = entry;
-    } else {
-      config.recentOrderPairs.unshift(entry);
-      // Keep only last 20 entries
-      if (config.recentOrderPairs.length > 20) {
-        config.recentOrderPairs = config.recentOrderPairs.slice(0, 20);
-      }
-    }
-
-    this.writeConfig(config);
   }
 
   // Bot management methods

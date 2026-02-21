@@ -16,7 +16,6 @@ export interface Balance {
 
 export interface Config {
   profiles: Profile[];
-  recentOrderPairs?: RecentOrderPair[];
 }
 
 // Order-related types
@@ -78,13 +77,6 @@ export interface PositionInfo {
   liquidationPrice?: number;
   marginMode?: string;
   raw: any;
-}
-
-export interface RecentOrderPair {
-  profileId: string;
-  profileName: string;
-  pair: string;
-  lastUsed: string;
 }
 
 // Bot-related types

@@ -49,8 +49,6 @@ export class OrdersController extends BaseController {
       try {
         ticker = await this.profileService.fetchTicker(profileId, pair);
 
-        // Update recent pairs
-        this.profileService.updateRecentOrderPair(profileId, pair);
       } catch (e) {
         error = String(e);
       }
