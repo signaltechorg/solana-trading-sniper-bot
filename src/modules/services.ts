@@ -94,6 +94,11 @@ import { Macd } from '../strategy/strategies/macd';
 import { AwesomeOscillatorCrossZero } from '../strategy/strategies/awesome_oscillator_cross_zero';
 import { ParabolicSar } from '../strategy/strategies/parabolicsar';
 import { DipCatcher } from '../strategy/strategies/dip_catcher/dip_catcher';
+import { CciMacd } from '../strategy/strategies/cci_macd';
+import { ObvPumpDump } from '../strategy/strategies/obv_pump_dump';
+import { PivotReversalStrategy } from '../strategy/strategies/pivot_reversal_strategy';
+import { Trader } from '../strategy/strategies/trader';
+import { Noop as NoopStrategy } from '../strategy/strategies/noop';
 import { StrategyRegistry } from './strategy/v2/strategy_registry';
 import { StrategyExecutor } from './strategy/v2/typed_backtest';
 
@@ -919,6 +924,11 @@ const services: Services = {
       AwesomeOscillatorCrossZero,
       ParabolicSar,
       DipCatcher,
+      CciMacd,
+      ObvPumpDump,
+      PivotReversalStrategy,
+      Trader,
+      NoopStrategy,
     ]));
   },
 

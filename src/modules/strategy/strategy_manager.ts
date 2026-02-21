@@ -14,31 +14,22 @@ import type { Logger } from '../services';
 import type { TechnicalAnalysisValidator } from '../../utils/technical_analysis_validator';
 import type { ExchangeCandleCombine } from '../exchange/exchange_candle_combine';
 
-// Statically import all built-in strategies for bundling
+// V1 strategies that have NOT been migrated to V2 yet
+// Migrated strategies (cci_macd, noop, obv_pump_dump, pivot_reversal_strategy, trader) are in V2 only
 import { AwesomeOscillatorCrossZero } from './strategies/awesome_oscillator_cross_zero';
 import { CCI } from './strategies/cci';
-import { CciMacd } from './strategies/cci_macd';
 import { DcaDipper } from './strategies/dca_dipper/dca_dipper';
 import { DipCatcher } from './strategies/dip_catcher/dip_catcher';
 import { Macd } from './strategies/macd';
-import { Noop } from './strategies/noop';
-import { ObvPumpDump } from './strategies/obv_pump_dump';
 import { PARABOLIC } from './strategies/parabolicsar';
-import { PivotReversalStrategy } from './strategies/pivot_reversal_strategy';
-import { Trader } from './strategies/trader';
 
 const builtInStrategies: StrategyInfo[] = [
   new AwesomeOscillatorCrossZero(),
   new CCI(),
-  new CciMacd(),
   new DcaDipper(),
   new DipCatcher(),
   new Macd(),
-  new Noop(),
-  new ObvPumpDump(),
   new PARABOLIC(),
-  new PivotReversalStrategy(),
-  new Trader(),
 ];
 
 export interface BacktestColumn {
