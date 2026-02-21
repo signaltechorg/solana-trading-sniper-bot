@@ -3,15 +3,166 @@
     <div class="max-w-[1800px] mx-auto">
         <div class="flex items-center justify-between mb-4">
             <h1 class="text-2xl font-semibold">Trades</h1>
-            <nav class="text-sm text-gray-500">
-                <a href="/" class="text-blue-600 hover:underline">Dashboard</a> / Trades
-            </nav>
+            <div class="flex items-center gap-4">
+                <form method="get" action="/trades">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                        <i class="fas fa-sync-alt mr-1"></i> Reload
+                    </button>
+                </form>
+                <nav class="text-sm text-gray-500">
+                    <a href="/" class="text-blue-600 hover:underline">Dashboard</a> / Trades
+                </nav>
+            </div>
         </div>
 
-        <div id="vue-trades"></div>
+        <!-- Positions Table -->
+        <div class="bg-white overflow-x-auto mb-4">
+            <div class="px-4 py-3 border-b-2 border-gray-300 flex justify-between items-center">
+                <span class="text-lg font-semibold">Positions</span>
+                <span class="text-gray-500 text-[13px]"><%= updatedAt %></span>
+            </div>
+
+            <table class="w-full border-collapse text-[13px]">
+                <thead>
+                <tr>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Exchange">E</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Symbol</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Amount</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Currency</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Profit</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Entry</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Updated</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Created</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Side">S</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Action">A</th>
+                </tr>
+                </thead>
+                <tbody>
+                <% positions.forEach(function(item) { %>
+                <tr class="hover:bg-gray-100">
+                    <td class="border border-gray-200 px-3 py-2">
+                        <img src="/img/exchanges/<%= item.exchange %>.png" alt="<%= item.exchange %>" title="<%= item.exchange %>" width="16" height="16">
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <a target="_blank" href="/tradingview/<%= item.exchange %>:<%= encodeURIComponent(item.position.symbol) %>" class="text-blue-600 hover:underline"><%= item.position.symbol %></a>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2 <%= item.position.amount > 0 ? 'text-green-600' : (item.position.amount < 0 ? 'text-red-600' : '') %>">
+                        <%= item.position.amount %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.currency) { %>
+                            <%= item.currency < 1 ? item.currency.toFixed(6) : item.currency.toFixed(2) %>
+                            <% if (item.currencyProfit) { %>
+                                <span class="text-gray-500"> / <%= item.currencyProfit < 1 ? item.currencyProfit.toFixed(6) : item.currencyProfit.toFixed(2) %></span>
+                            <% } %>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (typeof item.position.profit !== 'undefined') { %>
+                            <span class="<%= item.position.profit >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                                <%= item.position.profit.toFixed(2) %> %
+                            </span>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.position.entry) { %>
+                            <%= item.position.entry < 1 ? item.position.entry.toFixed(6) : item.position.entry.toFixed(2) %>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.position.updatedAt) { %>
+                            <%= new Date(item.position.updatedAt).toLocaleString() %>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.position.createdAt) { %>
+                            <%= new Date(item.position.createdAt).toLocaleString() %>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.position.side === 'short') { %>
+                            <i class="fas fa-chevron-circle-down text-red-600" title="short"></i>
+                        <% } else if (item.position.side === 'long') { %>
+                            <i class="fas fa-chevron-circle-up text-green-600" title="long"></i>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2 p-0">
+                        <form action="/pairs/<%= item.exchange %>-<%= item.position.symbol %>" method="post">
+                            <button class="text-gray-600 hover:text-red-600 px-1 py-1" name="action" value="close" title="Limit Close">
+                                <i class="fas fa-window-close" style="font-size: 0.9rem"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="bg-white overflow-x-auto">
+            <div class="px-4 py-3 border-b-2 border-gray-300 flex justify-between items-center">
+                <span class="text-lg font-semibold">Orders</span>
+                <span class="text-gray-500 text-[13px]"><%= updatedAt %></span>
+            </div>
+
+            <table class="w-full border-collapse text-[13px]">
+                <thead>
+                <tr>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Exchange">E</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Symbol</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Type</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Id</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Price</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Amount</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Retry</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">OurId</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Created</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Updated</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Status</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Side">S</th>
+                    <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2" title="Action">A</th>
+                </tr>
+                </thead>
+                <tbody>
+                <% orders.forEach(function(item) { %>
+                <tr class="hover:bg-gray-100">
+                    <td class="border border-gray-200 px-3 py-2">
+                        <img src="/img/exchanges/<%= item.exchange %>.png" alt="<%= item.exchange %>" title="<%= item.exchange %>" width="16" height="16">
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <a target="_blank" href="/tradingview/<%= item.exchange %>:<%= encodeURIComponent(item.order.symbol) %>" class="text-blue-600 hover:underline"><%= item.order.symbol %></a>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2"><%= item.order.type %></td>
+                    <td class="border border-gray-200 px-3 py-2"><%= item.order.id %></td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <%= item.order.price %>
+                        <% if (item.percent_to_price) { %>
+                            <span class="text-gray-500" title="Percent to current price"> <%= item.percent_to_price.toFixed(1) %> %</span>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2 <%= item.order.amount > 0 ? 'text-green-600' : (item.order.amount < 0 ? 'text-red-600' : '') %>">
+                        <%= item.order.amount %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2"><%= item.order.retry %></td>
+                    <td class="border border-gray-200 px-3 py-2"><%= item.order.ourId %></td>
+                    <td class="border border-gray-200 px-3 py-2"><%= new Date(item.order.createdAt).toLocaleString() %></td>
+                    <td class="border border-gray-200 px-3 py-2"><%= new Date(item.order.updatedAt).toLocaleString() %></td>
+                    <td class="border border-gray-200 px-3 py-2"><%= item.order.status %></td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <% if (item.order.side === 'sell') { %>
+                            <i class="fas fa-chevron-circle-down text-red-600" title="short"></i>
+                        <% } else if (item.order.side === 'buy') { %>
+                            <i class="fas fa-chevron-circle-up text-green-600" title="long"></i>
+                        <% } %>
+                    </td>
+                    <td class="border border-gray-200 px-3 py-2">
+                        <a title="cancel" href="/order/<%= item.exchange %>/<%= item.order.id %>" class="text-gray-600 hover:text-red-600"><i class="fas fa-window-close"></i></a>
+                    </td>
+                </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
-<script src="/js/trades.js?v=<%= assetVersion %>" type="module"></script>
