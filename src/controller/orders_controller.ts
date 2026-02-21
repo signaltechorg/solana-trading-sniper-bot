@@ -1,65 +1,128 @@
 import { BaseController, TemplateHelpers } from './base_controller';
-import { OrdersHttp } from '../modules/orders/orders_http';
-import { ExchangeManager } from '../modules/exchange/exchange_manager';
+import { ProfileService } from '../profile/profile_service';
+import { ProfilePairService, ProfilePair } from '../modules/profile_pair_service';
+import { OrderInfo, OrderParams } from '../profile/types';
 import express from 'express';
 
 export class OrdersController extends BaseController {
-  constructor(templateHelpers: TemplateHelpers, private ordersHttp: OrdersHttp, private exchangeManager: ExchangeManager) {
+  private pairService: ProfilePairService;
+
+  constructor(
+    templateHelpers: TemplateHelpers,
+    private profileService: ProfileService
+  ) {
     super(templateHelpers);
+    this.pairService = new ProfilePairService();
   }
 
   registerRoutes(router: express.Router): void {
     // Orders index page
     router.get('/orders', async (req: any, res: any) => {
+      const profiles = this.profileService.getProfiles();
+      const { pairs: allPairs, errors } = await this.pairService.getAllPairs(profiles);
+
       res.render('orders/index', {
         activePage: 'orders',
         title: 'Orders | Crypto Bot',
-        pairs: this.ordersHttp.getPairs()
+        allPairs,
+        errors
       });
     });
 
-    // Orders for a specific pair
-    router.get('/orders/:pair', async (req: any, res: any) => {
-      const { pair } = req.params;
-      const tradingview = pair.split('.');
+    // Orders for a specific Profile:pair
+    router.get('/orders/:profileId/:pair', async (req: any, res: any) => {
+      const { profileId, pair } = req.params;
+      const profile = this.profileService.getProfile(profileId);
 
-      const ticker = this.ordersHttp.getTicker(pair);
+      if (!profile) {
+        return res.status(404).render('error', {
+          activePage: 'orders',
+          title: 'Profile Not Found | Crypto Bot',
+          message: `Profile ${profileId} not found`
+        });
+      }
+
+      const profiles = this.profileService.getProfiles();
+      const { pairs: allPairs, errors: pairErrors } = await this.pairService.getAllPairs(profiles);
+
+      let ticker;
+      let orders: OrderInfo[] = [];
+      let error: string | null = null;
+
+      try {
+        ticker = await this.profileService.fetchTicker(profileId, pair);
+        orders = await this.profileService.fetchOpenOrders(profileId, pair);
+
+        // Update recent pairs
+        this.profileService.updateRecentOrderPair(profileId, pair);
+      } catch (e) {
+        error = String(e);
+      }
 
       res.render('orders/orders', {
         activePage: 'orders',
-        title: `Order: ${pair} | Crypto Bot`,
-        pair: pair,
-        pairs: this.ordersHttp.getPairs(),
-        orders: await this.ordersHttp.getOrders(pair),
-        position: await this.exchangeManager.getPosition(tradingview[0], tradingview[1]),
-        ticker: ticker,
-        tradingview: this.buildTradingViewSymbol(`${tradingview[0]}:${tradingview[1]}`),
+        title: `Order: ${profile.name}:${pair} | Crypto Bot`,
+        profile,
+        pair,
+        profilePair: `${profile.name}:${pair}`,
+        allPairs,
+        pairErrors,
+        ticker,
+        orders,
+        tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
         form: {
           price: ticker ? ticker.bid : undefined,
           type: 'limit'
-        }
+        },
+        error
       });
     });
 
-    // Create order for a pair
-    router.post('/orders/:pair', async (req: any, res: any) => {
-      const { pair } = req.params;
-      const tradingview = pair.split('.');
+    // Create order for a Profile:pair
+    router.post('/orders/:profileId/:pair', async (req: any, res: any) => {
+      const { profileId, pair } = req.params;
+      const profile = this.profileService.getProfile(profileId);
 
-      const ticker = this.ordersHttp.getTicker(pair);
+      if (!profile) {
+        return res.status(404).render('error', {
+          activePage: 'orders',
+          title: 'Profile Not Found | Crypto Bot',
+          message: `Profile ${profileId} not found`
+        });
+      }
+
+      const profiles = this.profileService.getProfiles();
+      const { pairs: allPairs, errors: pairErrors } = await this.pairService.getAllPairs(profiles);
+
       const form = req.body;
-
+      let ticker;
+      let orders: OrderInfo[] = [];
       let success = true;
       let message: string;
-      let result: any;
+      let error: string | null = null;
 
       try {
-        result = await this.ordersHttp.createOrder(pair, form);
-        message = JSON.stringify(result);
+        ticker = await this.profileService.fetchTicker(profileId, pair);
+        orders = await this.profileService.fetchOpenOrders(profileId, pair);
+      } catch (e) {
+        error = String(e);
+      }
 
-        if (!result || result.shouldCancelOrderProcess()) {
-          success = false;
-        }
+      try {
+        const orderParams: OrderParams = {
+          pair,
+          side: form.side as 'buy' | 'sell',
+          type: form.type as 'limit' | 'market',
+          amount: parseFloat(form.amount),
+          price: form.price ? parseFloat(form.price) : undefined,
+          isQuoteCurrency: form.amount_type === 'currency'
+        };
+
+        const result = await this.profileService.placeOrder(profileId, orderParams);
+        message = `Order placed successfully. ID: ${result.id}`;
+
+        // Refresh orders after placing
+        orders = await this.profileService.fetchOpenOrders(profileId, pair);
       } catch (e) {
         success = false;
         message = String(e);
@@ -67,54 +130,86 @@ export class OrdersController extends BaseController {
 
       res.render('orders/orders', {
         activePage: 'orders',
-        title: `Order: ${pair} | Crypto Bot`,
-        pair: pair,
-        pairs: this.ordersHttp.getPairs(),
-        orders: await this.ordersHttp.getOrders(pair),
-        ticker: ticker,
-        position: await this.exchangeManager.getPosition(tradingview[0], tradingview[1]),
-        form: form,
-        tradingview: this.buildTradingViewSymbol(`${tradingview[0]}:${tradingview[1]}`),
+        title: `Order: ${profile.name}:${pair} | Crypto Bot`,
+        profile,
+        pair,
+        profilePair: `${profile.name}:${pair}`,
+        allPairs,
+        pairErrors,
+        ticker,
+        orders,
+        tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
+        form,
+        error,
         alert: {
-          title: success ? 'Order Placed' : 'Place Error',
+          title: success ? 'Order Placed' : 'Order Error',
           type: success ? 'success' : 'danger',
-          message: message
+          message
         }
       });
     });
 
     // Cancel specific order
-    router.get('/orders/:pair/cancel/:id', async (req: any, res: any) => {
-      await this.ordersHttp.cancel(req.params.pair, req.params.id);
-      res.redirect(`/orders/${encodeURIComponent(req.params.pair)}`);
+    router.get('/orders/:profileId/:pair/cancel/:orderId', async (req: any, res: any) => {
+      const { profileId, pair, orderId } = req.params;
+
+      try {
+        await this.profileService.cancelOrder(profileId, orderId, pair);
+      } catch (e) {
+        console.error('Cancel order error:', e);
+      }
+
+      res.redirect(`/orders/${profileId}/${encodeURIComponent(pair)}`);
     });
 
     // Cancel all orders for a pair
-    router.get('/orders/:pair/cancel-all', async (req: any, res: any) => {
-      await this.ordersHttp.cancelAll(req.params.pair);
-      res.redirect(`/orders/${encodeURIComponent(req.params.pair)}`);
+    router.get('/orders/:profileId/:pair/cancel-all', async (req: any, res: any) => {
+      const { profileId, pair } = req.params;
+
+      try {
+        await this.profileService.cancelAllOrders(profileId, pair);
+      } catch (e) {
+        console.error('Cancel all orders error:', e);
+      }
+
+      res.redirect(`/orders/${profileId}/${encodeURIComponent(pair)}`);
     });
   }
 
   /**
-   * Tricky way to normalize our tradingview views
+   * Build TradingView symbol from exchange and pair
    */
-  private buildTradingViewSymbol(symbol: string): string {
-    let mySymbol = symbol;
+  private buildTradingViewSymbol(exchange: string, pair: string): string {
+    let symbol = pair.replace('/', '');
 
-    if (mySymbol.includes('binance_futures')) {
-      mySymbol = mySymbol.replace('binance_futures', 'binance');
-      mySymbol += 'PERP';
+    // Exchange-specific adjustments
+    if (exchange === 'binance') {
+      // For futures, append PERP
+      if (pair.includes(':USDT')) {
+        symbol = symbol.replace(':USDT', 'PERP');
+      }
     }
 
-    if (mySymbol.includes('bybit_unified') && mySymbol.endsWith(':USDT')) {
-      mySymbol = mySymbol.replace(':USDT', '.P').replace('/', '');
+    if (exchange === 'bybit') {
+      if (pair.endsWith(':USDT')) {
+        symbol = symbol.replace(':USDT', '.P');
+      } else if (pair.endsWith(':USDC')) {
+        symbol = symbol.replace(':USDC', '.P');
+      }
     }
 
-    if (mySymbol.includes('bybit_unified') && mySymbol.endsWith(':USDC')) {
-      mySymbol = mySymbol.replace(':USDC', '.P').replace('/', '');
-    }
+    // Map exchange names to TradingView format
+    const exchangeMap: Record<string, string> = {
+      'coinbasepro': 'coinbase',
+      'coinbase': 'coinbase',
+      'binance': 'binance',
+      'bybit': 'bybit',
+      'kraken': 'kraken',
+      'bitfinex': 'bitfinex',
+    };
 
-    return mySymbol.replace('-', '').replace('coinbase_pro', 'coinbase').replace('binance_margin', 'binance').replace('bybit_unified', 'bybit').toUpperCase();
+    const tvExchange = exchangeMap[exchange.toLowerCase()] || exchange.toLowerCase();
+
+    return `${tvExchange.toUpperCase()}:${symbol.toUpperCase()}`;
   }
 }

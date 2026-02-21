@@ -1,7 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ccxt from 'ccxt';
-import { Profile, Balance, Config } from './types';
+import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, RecentOrderPair } from './types';
+import {
+  fetchMarketData,
+  placeLimitOrder,
+  placeMarketOrder,
+  fetchOpenOrders as fetchOpenOrdersCCXT,
+  cancelOrder as cancelOrderCCXT,
+  cancelAllOrders as cancelAllOrdersCCXT
+} from './profile_order_service';
 
 export class ProfileService {
   private configPath: string;
@@ -117,5 +125,129 @@ export class ProfileService {
       const value = (ccxt as any)[key];
       return typeof value === 'function' && key !== 'version' && key !== 'pro' && key[0] === key[0].toLowerCase();
     }).sort();
+  }
+
+  // Order-related methods
+
+  /**
+   * Create a CCXT exchange instance with profile credentials
+   */
+  createExchangeInstance(profile: Profile): ccxt.Exchange {
+    const ExchangeClass = (ccxt as any)[profile.exchange];
+    if (!ExchangeClass) {
+      throw new Error(`Exchange ${profile.exchange} not supported`);
+    }
+
+    return new ExchangeClass({
+      apiKey: profile.apiKey,
+      secret: profile.secret,
+      enableRateLimit: true,
+    });
+  }
+
+  /**
+   * Get exchange instance by profile ID
+   */
+  getExchangeForProfile(profileId: string): ccxt.Exchange {
+    const profile = this.getProfile(profileId);
+    if (!profile) {
+      throw new Error(`Profile ${profileId} not found`);
+    }
+    return this.createExchangeInstance(profile);
+  }
+
+  /**
+   * Fetch ticker/market data for a pair
+   */
+  async fetchTicker(profileId: string, pair: string): Promise<MarketData> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return fetchMarketData(exchange, pair);
+  }
+
+  /**
+   * Fetch open orders for a profile/pair
+   */
+  async fetchOpenOrders(profileId: string, pair?: string): Promise<OrderInfo[]> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return fetchOpenOrdersCCXT(exchange, pair);
+  }
+
+  /**
+   * Place an order (limit or market)
+   */
+  async placeOrder(profileId: string, params: OrderParams): Promise<OrderResult> {
+    const exchange = this.getExchangeForProfile(profileId);
+
+    // Update recent pairs
+    this.updateRecentOrderPair(profileId, params.pair);
+
+    if (params.type === 'market') {
+      return placeMarketOrder(exchange, params);
+    } else {
+      return placeLimitOrder(exchange, params);
+    }
+  }
+
+  /**
+   * Cancel an order
+   */
+  async cancelOrder(profileId: string, orderId: string, pair?: string): Promise<any> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return cancelOrderCCXT(exchange, orderId, pair);
+  }
+
+  /**
+   * Cancel all orders for a pair
+   */
+  async cancelAllOrders(profileId: string, pair: string): Promise<void> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return cancelAllOrdersCCXT(exchange, pair);
+  }
+
+  // Recent order pairs management
+
+  /**
+   * Get recently used Profile:Pair combinations
+   */
+  getRecentOrderPairs(): RecentOrderPair[] {
+    const config = this.readConfig();
+    return config.recentOrderPairs || [];
+  }
+
+  /**
+   * Update a recent order pair (add or update timestamp)
+   */
+  updateRecentOrderPair(profileId: string, pair: string): void {
+    const config = this.readConfig();
+    const profile = this.getProfile(profileId);
+    if (!profile) return;
+
+    if (!config.recentOrderPairs) {
+      config.recentOrderPairs = [];
+    }
+
+    // Find existing entry
+    const existingIndex = config.recentOrderPairs.findIndex(
+      (r) => r.profileId === profileId && r.pair === pair
+    );
+
+    const entry: RecentOrderPair = {
+      profileId,
+      profileName: profile.name,
+      pair,
+      lastUsed: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      config.recentOrderPairs[existingIndex] = entry;
+    } else {
+      config.recentOrderPairs.unshift(entry);
+      // Keep only last 20 entries
+      if (config.recentOrderPairs.length > 20) {
+        config.recentOrderPairs = config.recentOrderPairs.slice(0, 20);
+      }
+    }
+
+    this.writeConfig(config);
   }
 }

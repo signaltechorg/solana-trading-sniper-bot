@@ -4,6 +4,20 @@ document.addEventListener('DOMContentLoaded', function () {
     return n.length > 1 ? n[1].length : 0;
   }
 
+  // Order type toggle (limit/market)
+  const orderTypeSelect = document.getElementById('order_type');
+  const priceGroup = document.getElementById('price-group');
+
+  if (orderTypeSelect && priceGroup) {
+    orderTypeSelect.addEventListener('change', function () {
+      if (this.value === 'market') {
+        priceGroup.classList.add('hidden');
+      } else {
+        priceGroup.classList.remove('hidden');
+      }
+    });
+  }
+
   // Percent input group buttons
   document.querySelectorAll('.percent-input-group').forEach(function (group) {
     group.addEventListener('click', function (e) {
@@ -24,35 +38,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Amount input fields
-  document.querySelectorAll('.form-group-amount input').forEach(function (input) {
-    input.addEventListener('keyup', function (e) {
-      const value = this.value;
+  // Amount input fields - auto-calculate
+  const amountInput = document.getElementById('amount');
+  const amountTypeSelect = document.getElementById('amount_type');
+  const priceInput = document.getElementById('price');
 
-      if (!value || Number.isNaN(parseFloat(value))) {
-        return;
-      }
+  function updateAmountDisplay() {
+    const amountValue = parseFloat(amountInput.value);
+    const priceValue = parseFloat(priceInput.value);
+    const amountType = amountTypeSelect.value;
 
-      const id = this.id;
-      const form = this.closest('form');
-      const assetPrice = form.querySelector('#price').value;
+    if (!amountValue || isNaN(amountValue) || !priceValue || isNaN(priceValue)) {
+      return;
+    }
 
-      if (!assetPrice) {
-        return;
-      }
+    // Just update a helper text if needed
+    // The conversion is now handled server-side with isQuoteCurrency flag
+  }
 
-      const priceValue = parseFloat(assetPrice);
-      const amountValue = parseFloat(value);
+  if (amountInput) {
+    amountInput.addEventListener('keyup', updateAmountDisplay);
+  }
+  if (priceInput) {
+    priceInput.addEventListener('keyup', updateAmountDisplay);
+  }
 
-      if (id === 'amount') {
-        form.querySelector('#amount_currency').value = (amountValue * priceValue).toFixed(getPrecision(priceValue));
-      } else {
-        form.querySelector('#amount').value = (amountValue / priceValue).toFixed(8);
-      }
-    });
-  });
-
-  // Filter pairs
+  // Filter pairs/recent items
   const filterInput = document.getElementById('filter-pairs');
   if (filterInput) {
     filterInput.addEventListener('keyup', function () {

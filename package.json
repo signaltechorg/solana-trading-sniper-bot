@@ -41,6 +41,7 @@
     "lodash": "^4.17.23",
     "mocha": "^11.7.5",
     "moment": "^2.30.1",
+    "node-cache": "^5.1.2",
     "nodemailer": "^8.0.1",
     "numbro": "^2.5.0",
     "p-queue": "^9.1.0",

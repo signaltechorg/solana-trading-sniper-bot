@@ -3,34 +3,89 @@
     <div class="max-w-[1800px] mx-auto">
         <div class="flex items-center justify-between mb-4">
             <h1 class="text-2xl font-semibold">Orders</h1>
-            <nav class="text-sm text-gray-500">
+            <nav class="text-[13px] text-gray-500">
                 <a href="/" class="text-blue-600 hover:underline">Dashboard</a> / Orders
             </nav>
         </div>
 
-        <div class="flex gap-4">
-            <div class="w-64 shrink-0">
-                <div class="bg-white border border-gray-200 rounded">
-                    <div class="px-4 py-3 border-b border-gray-200 font-medium">Pairs</div>
-                    <div class="p-3 border-b border-gray-200">
-                        <input type="text" id="filter-pairs" placeholder="Filter pairs..." class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm">
-                    </div>
-                    <div id="pairs-list">
-                        <% pairs.forEach(function(p) { %>
-                            <a href="/orders/<%= encodeURIComponent(p) %>" data-pair="<%= p.toLowerCase() %>" class="pair-link block px-4 py-2 text-sm border-b border-gray-100 <%= (typeof pair !== 'undefined' && p === pair) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50' %>">
-                                <i class="fas fa-inbox text-gray-400 mr-1"></i> <%= p %>
-                            </a>
-                        <% }); %>
-                    </div>
-                </div>
+        <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                <div class="font-medium mb-2"><i class="fas fa-exclamation-triangle"></i> Errors loading pairs:</div>
+                <ul class="text-sm list-disc list-inside">
+                    <% errors.forEach(function(err) { %>
+                        <li><%= err %></li>
+                    <% }); %>
+                </ul>
             </div>
-            <div class="flex-1">
-                <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
-                    <i class="fas fa-info-circle"></i> Select a trading pair from the list on the left to view and manage orders.
+        <% } %>
+
+        <div class="flex gap-4">
+            <!-- Pairs list -->
+            <div class="flex-1 bg-white border border-gray-200 rounded">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <span class="font-medium">Profile:Pairs (<%= allPairs.length %>)</span>
+                    <input type="text" id="pair-filter" placeholder="Filter..." class="border border-gray-300 rounded px-3 py-1.5 text-[13px] w-48">
+                </div>
+                <div id="pairs-list" class="max-h-[calc(100vh-280px)] overflow-y-auto">
+                    <% if (allPairs && allPairs.length > 0) { %>
+                            <table class="w-full border-collapse text-[13px]">
+                            <thead class="sticky top-0 bg-gray-50">
+                                <tr>
+                                    <th class="border border-gray-200 font-semibold px-3 py-2 text-left">Profile:Pair</th>
+                                    <th class="border border-gray-200 font-semibold px-3 py-2 text-center">Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <% allPairs.forEach(function(item) { %>
+                                <tr class="pair-item hover:bg-gray-100 cursor-pointer"
+                                    data-search="<%= item.profileName.toLowerCase() %> <%= item.pair.toLowerCase() %>"
+                                    onclick="window.location.href='/orders/<%= item.profileId %>/<%= encodeURIComponent(item.pair) %>'">
+                                    <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">
+                                        <span class="font-medium"><%= item.profileName %></span>
+                                        <span class="text-gray-400 mx-1">:</span>
+                                        <span class="text-blue-600"><%= item.pair %></span>
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center">
+                                        <%- getTypeBadge(item.type) %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <div class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-exclamation-circle text-4xl mb-3 text-gray-300"></i>
+                            <p>No pairs found.</p>
+                            <a href="/profiles" class="text-blue-600 hover:underline">Configure profiles</a>
+                        </div>
+                    <% } %>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="/js/orders.js?v=<%= assetVersion %>"></script>
+<% function getTypeBadge(type) { %>
+    <% if (type === 'spot') { %>
+        <span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs">Spot</span>
+    <% } else if (type === 'margin') { %>
+        <span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">Margin</span>
+    <% } else if (type === 'swap') { %>
+        <span class="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs">Swap</span>
+    <% } else if (type === 'future') { %>
+        <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs">Future</span>
+    <% } else { %>
+        <span class="text-gray-400">-</span>
+    <% } %>
+<% } %>
+
+<script>
+    // Filter functionality
+    document.getElementById('pair-filter')?.addEventListener('input', function(e) {
+        const filter = e.target.value.toLowerCase();
+        document.querySelectorAll('.pair-item').forEach(function(item) {
+            const search = item.getAttribute('data-search') || '';
+            item.style.display = search.includes(filter) ? '' : 'none';
+        });
+    });
+</script>

@@ -42,7 +42,7 @@ import { PairConfig } from './pairs/pair_config';
 import { SystemUtil } from './system/system_util';
 import { DeskService } from './system/desk_service';
 import { SymbolSearchService } from './system/symbol_search_service';
-import { ProfileService } from './profile/profile_service';
+import { ProfileService } from '../profile/profile_service';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import WinstonTelegramLogger from 'winston-telegram';
@@ -68,8 +68,6 @@ import { Noop } from '../exchange/noop';
 import { ExchangeCandleCombine } from './exchange/exchange_candle_combine';
 import { CandleExportHttp } from './system/candle_export_http';
 import { CandleImporter } from './system/candle_importer';
-
-import { OrdersHttp } from './orders/orders_http';
 
 // Controllers
 import { DashboardController } from '../controller';
@@ -146,7 +144,7 @@ export { LogsRepository, TickerLogRepository } from '../repository';
 export { ExchangePositionWatcher } from './exchange/exchange_position_watcher';
 export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
-export { ProfileService } from './profile/profile_service';
+export { ProfileService } from '../profile/profile_service';
 export { StrategyManager } from './strategy/strategy_manager';
 export { SignalLogger } from './signal/signal_logger';
 export { OrderExecutor } from './order/order_executor';
@@ -202,7 +200,6 @@ let exchangeCandleCombine: ExchangeCandleCombine;
 let candleExportHttp: CandleExportHttp;
 let exchangePositionWatcher: ExchangePositionWatcher;
 let tickerRepository: TickerRepository;
-let ordersHttp: OrdersHttp;
 let pairConfig: PairConfig;
 let throttler: Throttler;
 let deskService: DeskService;
@@ -255,7 +252,6 @@ export interface Services {
   getRequestClient(): RequestClient;
   getQueue(): QueueManager;
   getCandleExportHttp(): CandleExportHttp;
-  getOrdersHttp(): OrdersHttp;
   getExchangeCandleCombine(): ExchangeCandleCombine;
   getExchangePositionWatcher(): ExchangePositionWatcher;
   getThrottler(): Throttler;
@@ -691,14 +687,6 @@ const services: Services = {
     return (candleExportHttp = new CandleExportHttp(this.getCandlestickRepository(), this.getPairConfig()));
   },
 
-  getOrdersHttp: function (): OrdersHttp {
-    if (ordersHttp) {
-      return ordersHttp;
-    }
-
-    return (ordersHttp = new OrdersHttp(this.getTickers(), this.getOrderExecutor(), this.getExchangeManager(), this.getPairConfig()));
-  },
-
   getExchangeCandleCombine: function (): ExchangeCandleCombine {
     if (exchangeCandleCombine) {
       return exchangeCandleCombine;
@@ -852,7 +840,7 @@ const services: Services = {
   },
 
   getOrdersController: function (templateHelpers: any): OrdersController {
-    return new OrdersController(templateHelpers, this.getOrdersHttp(), this.getExchangeManager());
+    return new OrdersController(templateHelpers, this.getProfileService());
   },
 
   getSignalsController: function (templateHelpers: any): SignalsController {
