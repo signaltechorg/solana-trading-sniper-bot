@@ -51,7 +51,7 @@ export class ProfilePairService {
         throw new Error(`CoinGecko API error: ${response.status}`);
       }
 
-      const coins: CoinGeckoCoin[] = await response.json();
+      const coins = (await response.json()) as CoinGeckoCoin[];
 
       for (const coin of coins) {
         rankings[coin.symbol.toUpperCase()] = coin.market_cap_rank;

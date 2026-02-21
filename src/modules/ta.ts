@@ -21,7 +21,6 @@ export interface TaSymbol {
 export class Ta {
   constructor(
     private candlestickRepository: CandlestickRepository,
-    private instances: { symbols: TaSymbol[] },
     private tickers: Tickers
   ) {}
 

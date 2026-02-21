@@ -23,13 +23,7 @@
     "basic-auth": "^2.0.1",
     "better-queue": "^3.8.12",
     "better-sqlite3": "12.6.2",
-    "bfx-api-node-models": "^2.1.0",
-    "binance-api-node": "^0.13.6",
-    "bitfinex-api-node": "^8.0.0",
-    "bitmex-realtime-api": "^1.5.5",
-    "bybit-api": "^4.5.3",
     "ccxt": "^4.5.38",
-    "coinbase-pro": "^0.9.0",
     "colors": "^1.4.0",
     "commander": "^14.0.3",
     "compression": "^1.8.1",
@@ -49,7 +43,6 @@
     "percent": "^2.2.0",
     "queue": "^7.0.0",
     "queue-promise": "^2.2.1",
-    "request": "^2.88.2",
     "sendmail": "^1.6.1",
     "talib": "^2.0.3",
     "technicalindicators": "^3.1.0",
@@ -58,7 +51,6 @@
     "typescript": "^5.9.3",
     "winston": "^3.19.0",
     "winston-telegram": "^2.7.0",
-    "ws": "^8.19.0",
     "zero-fill": "^2.2.4"
   },
   "engines": {
@@ -99,8 +91,7 @@
     "build:prod": "node esbuild.config.mjs --prod",
     "build:watch": "node esbuild.config.mjs --watch",
     "setup": "pm2 deploy ecosystem.config.js production setup",
-    "deploy": "pm2 deploy ecosystem.config.js production",
-    "backtest": "npm run build:prod && node dist/index.js backtest"
+    "deploy": "pm2 deploy ecosystem.config.js production"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

@@ -13,30 +13,15 @@ import { Telegram } from '../notify/telegram';
 import { Tickers } from '../storage/tickers';
 import { Ta } from './ta';
 
-import { TickListener } from './listener/tick_listener';
-import { CreateOrderListener } from './listener/create_order_listener';
-import { TickerDatabaseListener } from './listener/ticker_database_listener';
-import { ExchangeOrderWatchdogListener } from './listener/exchange_order_watchdog_listener';
-import { ExchangePositionWatcher } from './exchange/exchange_position_watcher';
-
 import { SignalLogger } from './signal/signal_logger';
 import { SignalHttp } from './signal/signal_http';
 
 import { SignalRepository, CandlestickRepository } from '../repository';
 import { StrategyManager } from './strategy/strategy_manager';
-import { ExchangeManager } from './exchange/exchange_manager';
 
 import { Trade } from './trade';
 import { Http } from './http';
-import { Backtest } from './backtest';
 
-import { StopLossCalculator } from './order/stop_loss_calculator';
-import { RiskRewardRatioCalculator } from './order/risk_reward_ratio_calculator';
-import { PairsHttp } from './pairs/pairs_http';
-import { OrderExecutor } from './order/order_executor';
-import { OrderCalculator } from './order/order_calculator';
-import { PairStateManager } from './pairs/pair_state_manager';
-import { PairStateExecution } from './pairs/pair_state_execution';
 import { PairConfig } from './pairs/pair_config';
 import { SystemUtil } from './system/system_util';
 import { DeskService } from './system/desk_service';
@@ -53,22 +38,8 @@ import WinstonTelegramLogger from 'winston-telegram';
 import { LogsHttp } from './system/logs_http';
 import { LogsRepository, TickerLogRepository, TickerRepository } from '../repository';
 import { CandlestickResample } from './system/candlestick_resample';
-import { RequestClient } from '../utils/request_client';
-import { Throttler } from '../utils/throttler';
 import { QueueManager } from '../utils/queue';
 import { FileCache } from '../utils/file_cache';
-
-import { Bitmex } from '../exchange/bitmex';
-import { BitmexTestnet } from '../exchange/bitmex_testnet';
-import { Binance } from '../exchange/binance';
-import { BinanceMargin } from '../exchange/binance_margin';
-import { BinanceFutures } from '../exchange/binance_futures';
-import { BinanceFuturesCoin } from '../exchange/binance_futures_coin';
-import { CoinbasePro } from '../exchange/coinbase_pro';
-import { Bitfinex } from '../exchange/bitfinex';
-import { Bybit } from '../exchange/bybit';
-import { BybitUnified } from '../exchange/bybit_unified';
-import { Noop } from '../exchange/noop';
 
 import { ExchangeCandleCombine } from './exchange/exchange_candle_combine';
 import { CandleExportHttp } from './system/candle_export_http';
@@ -87,9 +58,6 @@ import { CcxtExchangesController } from '../controller';
 import { DashboardSettingsController } from '../controller';
 import { ProfileController } from '../controller';
 
-// Commands
-import { BacktestCommand } from '../command/backtest';
-
 // V2 Strategies
 import { DcaDipper } from '../strategy/strategies/dca_dipper/dca_dipper';
 import { Cci } from '../strategy/strategies/cci';
@@ -103,7 +71,6 @@ import { PivotReversalStrategy } from '../strategy/strategies/pivot_reversal_str
 import { Trader } from '../strategy/strategies/trader';
 import { Noop as NoopStrategy } from '../strategy/strategies/noop';
 import { StrategyRegistry } from './strategy/v2/strategy_registry';
-import { StrategyExecutor } from './strategy/v2/typed_backtest';
 
 // Interfaces
 interface Instances {
@@ -142,25 +109,17 @@ interface Parameters {
 
 export type Logger = ReturnType<typeof createLogger>;
 export { SystemUtil } from './system/system_util';
-export { PairStateManager } from './pairs/pair_state_manager';
 export { Tickers } from '../storage/tickers';
-export { CreateOrderListener } from './listener/create_order_listener';
-export { TickListener } from './listener/tick_listener';
-export { TickerDatabaseListener } from './listener/ticker_database_listener';
-export { ExchangeOrderWatchdogListener } from './listener/exchange_order_watchdog_listener';
 export { LogsRepository, TickerLogRepository } from '../repository';
-export { ExchangePositionWatcher } from './exchange/exchange_position_watcher';
 export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
 export { ProfileService } from '../profile/profile_service';
 export { ProfilePairService } from './profile_pair_service';
 export { StrategyManager } from './strategy/strategy_manager';
 export { SignalLogger } from './signal/signal_logger';
-export { OrderExecutor } from './order/order_executor';
-export { OrderCalculator } from './order/order_calculator';
-export { Backtest } from './backtest';
 export { PairConfig } from './pairs/pair_config';
 export { FileCache } from '../utils/file_cache';
+export { BotRunner } from '../strategy/bot_runner';
 
 let db: Sqlite.Database | undefined;
 let instances: Instances;
@@ -173,10 +132,6 @@ let tickers: Tickers;
 let queue: QueueManager;
 
 let candleStickImporter: CandleImporter;
-let tickerDatabaseListener: TickerDatabaseListener;
-let tickListener: TickListener;
-let createOrderListener: CreateOrderListener;
-let exchangeOrderWatchdogListener: ExchangeOrderWatchdogListener;
 
 let signalLogger: SignalLogger;
 let signalHttp: SignalHttp;
@@ -184,42 +139,24 @@ let signalHttp: SignalHttp;
 let signalRepository: SignalRepository;
 let candlestickRepository: CandlestickRepository;
 
-let exchangeManager: ExchangeManager;
-let backtest: Backtest;
-let pairStateManager: PairStateManager;
-let pairStateExecution: PairStateExecution;
-
 let strategyManager: StrategyManager;
 
-let stopLossCalculator: StopLossCalculator;
-let riskRewardRatioCalculator: RiskRewardRatioCalculator;
-let pairsHttp: PairsHttp;
-let orderExecutor: OrderExecutor;
-let orderCalculator: OrderCalculator;
 let systemUtil: SystemUtil;
 let technicalAnalysisValidator: TechnicalAnalysisValidator;
 let logsHttp: LogsHttp;
 let logsRepository: LogsRepository;
 let tickerLogRepository: TickerLogRepository;
 let candlestickResample: CandlestickResample;
-let exchanges: Array<
-  Bitmex | BitmexTestnet | Binance | BinanceMargin | BinanceFutures | BinanceFuturesCoin | CoinbasePro | Bitfinex | Bybit | BybitUnified | Noop
->;
-let requestClient: RequestClient;
 let exchangeCandleCombine: ExchangeCandleCombine;
 let candleExportHttp: CandleExportHttp;
-let exchangePositionWatcher: ExchangePositionWatcher;
 let tickerRepository: TickerRepository;
 let pairConfig: PairConfig;
-let throttler: Throttler;
 let deskService: DeskService;
 let dashboardConfigService: DashboardConfigService;
 let ccxtCandlePrefillService: CcxtCandlePrefillService;
 let ccxtCandleWatchService: CcxtCandleWatchService;
 let symbolSearchService: SymbolSearchService;
 let v2StrategyRegistry: StrategyRegistry;
-let strategyExecutor: StrategyExecutor;
-let backtestCommand: BacktestCommand;
 let profileService: ProfileService;
 let profilePairService: ProfilePairService;
 let fileCache: FileCache;
@@ -233,14 +170,7 @@ export interface Services {
   boot(projectDir: string): Promise<void>;
   getDatabase(): Sqlite.Database;
   getTa(): Ta;
-  getBacktest(): Backtest;
-  getStopLossCalculator(): StopLossCalculator;
-  getRiskRewardRatioCalculator(): RiskRewardRatioCalculator;
   getCandleImporter(): CandleImporter;
-  getCreateOrderListener(): CreateOrderListener;
-  getTickListener(): TickListener;
-  getExchangeOrderWatchdogListener(): ExchangeOrderWatchdogListener;
-  getTickerDatabaseListener(): TickerDatabaseListener;
   getSignalLogger(): SignalLogger;
   getSignalHttp(): SignalHttp;
   getSignalRepository(): SignalRepository;
@@ -251,13 +181,7 @@ export interface Services {
   getTickers(): Tickers;
   getStrategyManager(): StrategyManager;
   createWebserverInstance(): Http;
-  getExchangeManager(): ExchangeManager;
-  getOrderExecutor(): OrderExecutor;
-  getOrderCalculator(): OrderCalculator;
-  getHttpPairs(): PairsHttp;
   getPairConfig(): PairConfig;
-  getPairStateManager(): PairStateManager;
-  getPairStateExecution(): PairStateExecution;
   getSystemUtil(): SystemUtil;
   getTechnicalAnalysisValidator(): TechnicalAnalysisValidator;
   getLogsRepository(): LogsRepository;
@@ -265,15 +189,9 @@ export interface Services {
   getTickerLogRepository(): TickerLogRepository;
   getTickerRepository(): TickerRepository;
   getCandlestickResample(): CandlestickResample;
-  getRequestClient(): RequestClient;
   getQueue(): QueueManager;
   getCandleExportHttp(): CandleExportHttp;
   getExchangeCandleCombine(): ExchangeCandleCombine;
-  getExchangePositionWatcher(): ExchangePositionWatcher;
-  getThrottler(): Throttler;
-  getExchanges(): Array<
-    Bitmex | BitmexTestnet | Binance | BinanceMargin | BinanceFutures | BinanceFuturesCoin | CoinbasePro | Bitfinex | Bybit | BybitUnified | Noop
-  >;
   createTradeInstance(): Trade;
   createMailer(): any;
   createTelegram(): any;
@@ -299,8 +217,6 @@ export interface Services {
   getDeskService(): DeskService;
   getSymbolSearchService(): SymbolSearchService;
   getV2StrategyRegistry(): StrategyRegistry;
-  getStrategyExecutor(): StrategyExecutor;
-  getBacktestCommand(): BacktestCommand;
   getFileCache(): FileCache;
   getBotRunner(): BotRunner;
 }
@@ -348,31 +264,7 @@ const services: Services = {
       return ta;
     }
 
-    return (ta = new Ta(this.getCandlestickRepository(), this.getInstances(), this.getTickers()));
-  },
-
-  getBacktest: function (): Backtest {
-    if (backtest) {
-      return backtest;
-    }
-
-    return (backtest = new Backtest(this.getInstances(), this.getStrategyManager(), this.getExchangeCandleCombine(), parameters.projectDir));
-  },
-
-  getStopLossCalculator: function (): StopLossCalculator {
-    if (stopLossCalculator) {
-      return stopLossCalculator;
-    }
-
-    return (stopLossCalculator = new StopLossCalculator(this.getTickers(), this.getLogger()));
-  },
-
-  getRiskRewardRatioCalculator: function (): RiskRewardRatioCalculator {
-    if (riskRewardRatioCalculator) {
-      return riskRewardRatioCalculator;
-    }
-
-    return (riskRewardRatioCalculator = new RiskRewardRatioCalculator(this.getLogger()));
+    return (ta = new Ta(this.getCandlestickRepository(), this.getTickers()));
   },
 
   getCandleImporter: function (): CandleImporter {
@@ -381,58 +273,6 @@ const services: Services = {
     }
 
     return (candleStickImporter = new CandleImporter(this.getCandlestickRepository()));
-  },
-
-  getCreateOrderListener: function (): CreateOrderListener {
-    if (createOrderListener) {
-      return createOrderListener;
-    }
-
-    return (createOrderListener = new CreateOrderListener(this.getExchangeManager(), this.getLogger()));
-  },
-
-  getTickListener: function (): TickListener {
-    if (tickListener) {
-      return tickListener;
-    }
-
-    return (tickListener = new TickListener(
-      this.getTickers(),
-      this.getInstances(),
-      this.getNotifier(),
-      this.getSignalLogger(),
-      this.getStrategyManager(),
-      this.getExchangeManager(),
-      this.getPairStateManager(),
-      this.getLogger(),
-      this.getOrderExecutor(),
-      this.getOrderCalculator()
-    ));
-  },
-
-  getExchangeOrderWatchdogListener: function (): ExchangeOrderWatchdogListener {
-    if (exchangeOrderWatchdogListener) {
-      return exchangeOrderWatchdogListener;
-    }
-
-    return (exchangeOrderWatchdogListener = new ExchangeOrderWatchdogListener(
-      this.getExchangeManager(),
-      this.getInstances(),
-      this.getStopLossCalculator(),
-      this.getRiskRewardRatioCalculator(),
-      this.getOrderExecutor(),
-      this.getPairStateManager(),
-      this.getLogger(),
-      this.getTickers()
-    ));
-  },
-
-  getTickerDatabaseListener: function (): TickerDatabaseListener {
-    if (tickerDatabaseListener) {
-      return tickerDatabaseListener;
-    }
-
-    return (tickerDatabaseListener = new TickerDatabaseListener(this.getTickerRepository()));
   },
 
   getSignalLogger: function (): SignalLogger {
@@ -558,72 +398,12 @@ const services: Services = {
     return new Http(this.getSystemUtil(), parameters.projectDir, this);
   },
 
-  getExchangeManager: function (): ExchangeManager {
-    if (exchangeManager) {
-      return exchangeManager;
-    }
-
-    return (exchangeManager = new ExchangeManager(this.getExchanges(), this.getInstances(), this.getConfig()));
-  },
-
-  getOrderExecutor: function (): OrderExecutor {
-    if (orderExecutor) {
-      return orderExecutor;
-    }
-
-    return (orderExecutor = new OrderExecutor(this.getExchangeManager(), this.getTickers(), this.getSystemUtil(), this.getLogger()));
-  },
-
-  getOrderCalculator: function (): OrderCalculator {
-    if (orderCalculator) {
-      return orderCalculator;
-    }
-
-    return (orderCalculator = new OrderCalculator(this.getTickers(), this.getLogger(), this.getExchangeManager(), this.getPairConfig()));
-  },
-
-  getHttpPairs: function (): PairsHttp {
-    if (pairsHttp) {
-      return pairsHttp;
-    }
-
-    return (pairsHttp = new PairsHttp(this.getInstances(), this.getExchangeManager(), this.getPairStateManager(), this.getEventEmitter()));
-  },
-
   getPairConfig: function (): PairConfig {
     if (pairConfig) {
       return pairConfig;
     }
 
     return (pairConfig = new PairConfig(this.getInstances()));
-  },
-
-  getPairStateManager: function (): PairStateManager {
-    if (pairStateManager) {
-      return pairStateManager;
-    }
-
-    return (pairStateManager = new PairStateManager(
-      this.getLogger(),
-      this.getPairConfig(),
-      this.getSystemUtil(),
-      this.getPairStateExecution(),
-      this.getOrderExecutor()
-    ));
-  },
-
-  getPairStateExecution: function (): PairStateExecution {
-    if (pairStateExecution) {
-      return pairStateExecution;
-    }
-
-    return (pairStateExecution = new PairStateExecution(
-      this.getExchangeManager(),
-      this.getOrderCalculator(),
-      this.getOrderExecutor(),
-      this.getLogger(),
-      this.getTickers()
-    ));
   },
 
   getSystemUtil: function (): SystemUtil {
@@ -682,14 +462,6 @@ const services: Services = {
     return (candlestickResample = new CandlestickResample(this.getCandlestickRepository(), this.getCandleImporter()));
   },
 
-  getRequestClient: function (): RequestClient {
-    if (requestClient) {
-      return requestClient;
-    }
-
-    return (requestClient = new RequestClient(this.getLogger()));
-  },
-
   getQueue: function (): QueueManager {
     if (queue) {
       return queue;
@@ -714,93 +486,13 @@ const services: Services = {
     return (exchangeCandleCombine = new ExchangeCandleCombine(this.getCandlestickRepository()));
   },
 
-  getExchangePositionWatcher: function (): ExchangePositionWatcher {
-    if (exchangePositionWatcher) {
-      return exchangePositionWatcher;
-    }
-
-    return (exchangePositionWatcher = new ExchangePositionWatcher(this.getExchangeManager(), this.getEventEmitter(), this.getLogger()));
-  },
-
-  getThrottler: function (): Throttler {
-    if (throttler) {
-      return throttler;
-    }
-
-    return (throttler = new Throttler(this.getLogger()));
-  },
-
-  getExchanges: function (): Array<
-    Bitmex | BitmexTestnet | Binance | BinanceMargin | BinanceFutures | BinanceFuturesCoin | CoinbasePro | Bitfinex | Bybit | BybitUnified | Noop
-  > {
-    if (exchanges) {
-      return exchanges;
-    }
-
-    return (exchanges = [
-      new Bitmex(this.getEventEmitter(), this.getRequestClient(), this.getCandlestickResample(), this.getLogger(), this.getQueue(), this.getCandleImporter()),
-      new BitmexTestnet(
-        this.getEventEmitter(),
-        this.getRequestClient(),
-        this.getCandlestickResample(),
-        this.getLogger(),
-        this.getQueue(),
-        this.getCandleImporter()
-      ),
-      new Binance(this.getEventEmitter(), this.getLogger(), this.getQueue(), this.getCandleImporter(), this.getThrottler()),
-      new BinanceMargin(this.getEventEmitter(), this.getLogger(), this.getQueue(), this.getCandleImporter(), this.getThrottler()),
-      new BinanceFutures(
-        this.getEventEmitter(),
-        this.getLogger(),
-        this.getQueue(),
-        this.getCandleImporter(),
-        this.getThrottler()
-      ),
-      new BinanceFuturesCoin(
-        this.getEventEmitter(),
-        this.getLogger(),
-        this.getQueue(),
-        this.getCandleImporter(),
-        this.getThrottler()
-      ),
-      new CoinbasePro(this.getEventEmitter(), this.getLogger(), this.getCandlestickResample(), this.getQueue(), this.getCandleImporter()),
-      new Bitfinex(this.getEventEmitter(), this.getLogger(), this.getRequestClient(), this.getCandleImporter()),
-      new Bybit(
-        this.getEventEmitter(),
-        this.getRequestClient(),
-        this.getLogger(),
-        this.getQueue(),
-        this.getCandleImporter(),
-        this.getThrottler()
-      ),
-      new BybitUnified(
-        this.getEventEmitter(),
-        this.getLogger(),
-        this.getQueue(),
-        this.getCandleImporter()
-      ),
-      new Noop()
-    ]);
-  },
-
   createTradeInstance: function (): Trade {
-    this.getExchangeManager().init();
-
     return new Trade(
-      this.getEventEmitter(),
-      this.getInstances(),
       this.getNotifier(),
       this.getLogger(),
-      this.getCreateOrderListener(),
-      this.getTickListener(),
-      this.getTickers(),
-      this.getTickerDatabaseListener(),
-      this.getExchangeOrderWatchdogListener(),
-      this.getSystemUtil(),
       this.getLogsRepository(),
       this.getTickerLogRepository(),
-      this.getExchangePositionWatcher(),
-      this.getPairStateManager()
+      this.getBotRunner()
     );
   },
 
@@ -872,7 +564,7 @@ const services: Services = {
   },
 
   getTradesController: function (templateHelpers: any): TradesController {
-    return new TradesController(templateHelpers, this.getExchangeManager(), this.getTickers(), this.getProfileService());
+    return new TradesController(templateHelpers, this.getProfileService());
   },
 
   getOrdersController: function (templateHelpers: any): OrdersController {
@@ -957,26 +649,6 @@ const services: Services = {
       Trader,
       NoopStrategy,
     ]));
-  },
-
-  getStrategyExecutor: function (): StrategyExecutor {
-    if (strategyExecutor) {
-      return strategyExecutor;
-    }
-
-    return (strategyExecutor = new StrategyExecutor());
-  },
-
-  getBacktestCommand: function (): BacktestCommand {
-    if (backtestCommand) {
-      return backtestCommand;
-    }
-
-    return (backtestCommand = new BacktestCommand(
-      this.getV2StrategyRegistry(),
-      this.getExchangeCandleCombine(),
-      this.getStrategyExecutor()
-    ));
   },
 
   getFileCache: function (): FileCache {
