@@ -144,7 +144,6 @@ export class Http {
     // Register all controller routes to the main router with full paths
     this.services.getDashboardController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getTradesController(this.templateHelpers).registerRoutes(mainRouter);
-    this.services.getPairsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getOrdersController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getSignalsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getCandlesController(this.templateHelpers).registerRoutes(mainRouter);
@@ -152,7 +151,6 @@ export class Http {
     this.services.getBacktestV2Controller(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getLogsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getDesksController(this.templateHelpers).registerRoutes(mainRouter);
-    this.services.getTradingViewController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getCcxtExchangesController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getProfileController(this.templateHelpers).registerRoutes(mainRouter);
 

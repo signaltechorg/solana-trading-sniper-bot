@@ -72,7 +72,6 @@ import { CandleImporter } from './system/candle_importer';
 // Controllers
 import { DashboardController } from '../controller';
 import { TradesController } from '../controller';
-import { PairsController } from '../controller';
 import { OrdersController } from '../controller';
 import { SignalsController } from '../controller';
 import { CandlesController } from '../controller';
@@ -80,7 +79,6 @@ import { BacktestController } from '../controller';
 import { BacktestV2Controller } from '../controller/backtest_v2_controller';
 import { LogsController } from '../controller';
 import { DesksController } from '../controller';
-import { TradingViewController } from '../controller';
 import { CcxtExchangesController } from '../controller';
 import { ProfileController } from '../controller';
 
@@ -267,7 +265,6 @@ export interface Services {
   // Controllers
   getDashboardController(templateHelpers: any): DashboardController;
   getTradesController(templateHelpers: any): TradesController;
-  getPairsController(templateHelpers: any): PairsController;
   getOrdersController(templateHelpers: any): OrdersController;
   getSignalsController(templateHelpers: any): SignalsController;
   getCandlesController(templateHelpers: any): CandlesController;
@@ -275,7 +272,6 @@ export interface Services {
   getBacktestV2Controller(templateHelpers: any): BacktestV2Controller;
   getLogsController(templateHelpers: any): LogsController;
   getDesksController(templateHelpers: any): DesksController;
-  getTradingViewController(templateHelpers: any): TradingViewController;
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getProfileController(templateHelpers: any): ProfileController;
   getProfileService(): ProfileService;
@@ -835,10 +831,6 @@ const services: Services = {
     return new TradesController(templateHelpers, this.getExchangeManager(), this.getTickers());
   },
 
-  getPairsController: function (templateHelpers: any): PairsController {
-    return new PairsController(templateHelpers, this.getHttpPairs());
-  },
-
   getOrdersController: function (templateHelpers: any): OrdersController {
     return new OrdersController(templateHelpers, this.getProfileService());
   },
@@ -865,10 +857,6 @@ const services: Services = {
 
   getDesksController: function (templateHelpers: any): DesksController {
     return new DesksController(templateHelpers, this.getDeskService(), this.getSymbolSearchService());
-  },
-
-  getTradingViewController: function (templateHelpers: any): TradingViewController {
-    return new TradingViewController(templateHelpers);
   },
 
   getCcxtExchangesController: function (templateHelpers: any): CcxtExchangesController {
