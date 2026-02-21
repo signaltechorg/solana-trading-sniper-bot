@@ -47,6 +47,7 @@ import { CcxtCandleWatchService } from './system/ccxt_candle_watch_service';
 import { SymbolSearchService } from './system/symbol_search_service';
 import { ProfileService } from '../profile/profile_service';
 import { ProfilePairService } from './profile_pair_service';
+import { BotRunner } from '../strategy/bot_runner';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import WinstonTelegramLogger from 'winston-telegram';
@@ -223,6 +224,7 @@ let backtestCommand: BacktestCommand;
 let profileService: ProfileService;
 let profilePairService: ProfilePairService;
 let fileCache: FileCache;
+let botRunner: BotRunner;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -302,6 +304,7 @@ export interface Services {
   getStrategyExecutor(): StrategyExecutor;
   getBacktestCommand(): BacktestCommand;
   getFileCache(): FileCache;
+  getBotRunner(): BotRunner;
 }
 
 const services: Services = {
@@ -988,6 +991,20 @@ const services: Services = {
     }
 
     return (fileCache = new FileCache());
+  },
+
+  getBotRunner: function (): BotRunner {
+    if (botRunner) {
+      return botRunner;
+    }
+
+    return (botRunner = new BotRunner(
+      this.getProfileService(),
+      this.getStrategyManager(),
+      this.getNotifier(),
+      this.getSignalLogger(),
+      this.getLogger()
+    ));
   }
 };
 
