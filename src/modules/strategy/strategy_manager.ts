@@ -14,23 +14,6 @@ import type { Logger } from '../services';
 import type { TechnicalAnalysisValidator } from '../../utils/technical_analysis_validator';
 import type { ExchangeCandleCombine } from '../exchange/exchange_candle_combine';
 
-// V1 strategies that have NOT been migrated to V2 yet
-// Migrated strategies (cci_macd, noop, obv_pump_dump, pivot_reversal_strategy, trader) are in V2 only
-import { AwesomeOscillatorCrossZero } from './strategies/awesome_oscillator_cross_zero';
-import { CCI } from './strategies/cci';
-import { DcaDipper } from './strategies/dca_dipper/dca_dipper';
-import { DipCatcher } from './strategies/dip_catcher/dip_catcher';
-import { Macd } from './strategies/macd';
-import { PARABOLIC } from './strategies/parabolicsar';
-
-const builtInStrategies: StrategyInfo[] = [
-  new AwesomeOscillatorCrossZero(),
-  new CCI(),
-  new DcaDipper(),
-  new DipCatcher(),
-  new Macd(),
-  new PARABOLIC(),
-];
 
 export interface BacktestColumn {
   value: string | ((row: Record<string, any>) => any);
@@ -77,8 +60,7 @@ export class StrategyManager {
       return this.strategies;
     }
 
-    // Start with built-in strategies (statically imported for bundling)
-    const strategies: StrategyInfo[] = [...builtInStrategies];
+    const strategies: StrategyInfo[] = [];
 
     // Only load custom strategies from var/strategies (user-defined)
     const varStrategiesDir = `${this.projectDir}/var/strategies`;

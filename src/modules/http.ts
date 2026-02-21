@@ -148,7 +148,6 @@ export class Http {
     this.services.getSignalsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getCandlesController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getBacktestController(this.templateHelpers).registerRoutes(mainRouter);
-    this.services.getBacktestV2Controller(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getLogsController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getDesksController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getCcxtExchangesController(this.templateHelpers).registerRoutes(mainRouter);

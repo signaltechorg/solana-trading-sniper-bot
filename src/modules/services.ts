@@ -77,8 +77,7 @@ import { TradesController } from '../controller';
 import { OrdersController } from '../controller';
 import { SignalsController } from '../controller';
 import { CandlesController } from '../controller';
-import { BacktestController } from '../controller';
-import { BacktestV2Controller } from '../controller/backtest_v2_controller';
+import { BacktestController } from '../controller/backtest_controller';
 import { LogsController } from '../controller';
 import { DesksController } from '../controller';
 import { CcxtExchangesController } from '../controller';
@@ -280,7 +279,6 @@ export interface Services {
   getSignalsController(templateHelpers: any): SignalsController;
   getCandlesController(templateHelpers: any): CandlesController;
   getBacktestController(templateHelpers: any): BacktestController;
-  getBacktestV2Controller(templateHelpers: any): BacktestV2Controller;
   getLogsController(templateHelpers: any): LogsController;
   getDesksController(templateHelpers: any): DesksController;
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
@@ -857,11 +855,7 @@ const services: Services = {
   },
 
   getBacktestController: function (templateHelpers: any): BacktestController {
-    return new BacktestController(templateHelpers, this.getBacktest());
-  },
-
-  getBacktestV2Controller: function (templateHelpers: any): BacktestV2Controller {
-    return new BacktestV2Controller(templateHelpers, this.getExchangeCandleCombine(), this.getInstances(), this.getV2StrategyRegistry());
+    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getInstances(), this.getV2StrategyRegistry());
   },
 
   getLogsController: function (templateHelpers: any): LogsController {
