@@ -239,57 +239,6 @@ export class Bybit {
       }, 10000);
     };
 
-    symbols.forEach((symbol: any) => {
-      symbol.periods.forEach((period: string) => {
-        // for bot init prefill data: load latest candles from api
-        this.queue.add(async () => {
-          const minutes = convertPeriodToMinute(period);
-
-          // from is required calculate to be inside window
-          const from = Math.floor(new Date().getTime() / 1000) - minutes * 195 * 60;
-
-          const s = `${me.getBaseUrl()}/v2/public/kline/list?symbol=${symbol.symbol}&from=${from}&interval=${minutes}`;
-          await new Promise<void>((resolve, _reject) => {
-            request(s, { json: true }, async (err, res, body) => {
-              if (err) {
-                console.log(`Bybit: Candle backfill error: ${String(err)}`);
-                logger.error(`Bybit: Candle backfill error: ${String(err)}`);
-                resolve();
-                return;
-              }
-
-              if (!body || !body.result || !Array.isArray(body.result)) {
-                console.log(`Bybit: Candle backfill error: ${JSON.stringify(body)}`);
-                logger.error(`Bybit Candle backfill error: ${JSON.stringify(body)}`);
-                resolve();
-                return;
-              }
-
-              const candleSticks = body.result.map((candle: any) => {
-                return new ExchangeCandlestick(
-                  me.getName(),
-                  candle.symbol,
-                  period,
-                  candle.open_time,
-                  candle.open,
-                  candle.high,
-                  candle.low,
-                  candle.close,
-                  candle.volume
-                );
-              });
-
-              await this.candleImporter.insertThrottledCandles(
-                candleSticks.map((candle: any) => {
-                  return ExchangeCandlestick.createFromCandle(me.getName(), symbol.symbol, period, candle);
-                })
-              );
-              resolve();
-            });
-          });
-        });
-      });
-    });
   }
 
   /**

@@ -95,29 +95,6 @@ export class CoinbasePro {
       { channels: channels }
     );
 
-    symbols.forEach((symbol: any) => {
-      symbol.periods.forEach((interval: string) =>
-        this.queue.add(async () => {
-          // backfill
-          const granularity = convertPeriodToMinute(interval) * 60;
-
-          let candles;
-          try {
-            candles = await this.client.getProductHistoricRates(symbol.symbol, { granularity: granularity });
-          } catch (e) {
-            this.logger.error(`Coinbase Pro: candles fetch error: ${JSON.stringify([symbol.symbol, interval, String(e)])}`);
-            return;
-          }
-
-          const ourCandles = candles.map(
-            (candle: any) => new ExchangeCandlestick(this.getName(), symbol.symbol, interval, candle[0], candle[3], candle[2], candle[1], candle[4], candle[5])
-          );
-
-          await this.candleImporter.insertThrottledCandles(ourCandles);
-        })
-      );
-    });
-
     const me = this;
 
     // let websocket bootup

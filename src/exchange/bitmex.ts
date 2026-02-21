@@ -248,65 +248,6 @@ export class Bitmex {
       myPeriods = Array.from(new Set(myPeriods));
 
       myPeriods.forEach(period => {
-        // for bot init prefill data: load latest candles from api
-        this.queue.add(() => {
-          request(
-            `${me.getBaseUrl()}/api/v1/trade/bucketed?binSize=${period}&partial=false&symbol=${
-              symbol.symbol
-            }&count=750&reverse=true`,
-            { json: true },
-            async (err, res, body) => {
-              if (err) {
-                console.log(`Bitmex: Candle backfill error: ${String(err)}`);
-                logger.error(`Bitmex: Candle backfill error: ${String(err)}`);
-                return;
-              }
-
-              if (!Array.isArray(body)) {
-                console.log(`Bitmex: Candle backfill error: ${JSON.stringify(body)}`);
-                logger.error(`Bitmex Candle backfill error: ${JSON.stringify(body)}`);
-                return;
-              }
-
-              const candleSticks = body.map((candle: BitmexCandle) => {
-                return new Candlestick(
-                  parseInt(moment(candle.timestamp).format('X'), 10),
-                  candle.open,
-                  candle.high,
-                  candle.low,
-                  candle.close,
-                  candle.volume
-                );
-              });
-
-              await this.candleImporter.insertThrottledCandles(
-                candleSticks.map(candle => {
-                  return ExchangeCandlestick.createFromCandle(this.getName(), symbol.symbol, period, candle);
-                })
-              );
-
-              if (
-                resamples[symbol.symbol] &&
-                resamples[symbol.symbol][period] &&
-                resamples[symbol.symbol][period].length > 0
-              ) {
-                for (const periodTo of resamples[symbol.symbol][period]) {
-                  const resampledCandles = resampleMinutes(
-                    candleSticks.slice(),
-                    convertPeriodToMinute(periodTo) // 15m > 15
-                  );
-
-                  const candles = resampledCandles.map(candle => {
-                    return ExchangeCandlestick.createFromCandle(this.getName(), symbol.symbol, periodTo, candle);
-                  });
-
-                  await this.candleImporter.insertThrottledCandles(candles);
-                }
-              }
-            }
-          );
-        });
-
         // listen for new incoming candles
         client.addStream(symbol.symbol, `tradeBin${period}`, async (candles: BitmexCandle[]) => {
           // we need a force reset; candles are like queue

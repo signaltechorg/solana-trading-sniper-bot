@@ -124,38 +124,6 @@ export class BinanceFuturesCoin {
       me.logger.info('Binance Futures: Starting as anonymous; no trading possible');
     }
 
-    symbols.forEach(symbol => {
-      symbol.periods.forEach((period: string) => {
-        // for bot init prefill data: load latest candles from api
-        this.queue.add(async () => {
-          let ohlcvs: any;
-
-          try {
-            ohlcvs = await ccxtClient.fetchOHLCV(symbol.symbol.replace('USDT', '/USDT'), period, undefined, 500);
-          } catch (e) {
-            me.logger.info(`Binance Futures: candles fetch error: ${JSON.stringify([symbol.symbol, period, String(e)])}`);
-
-            return;
-          }
-
-          const ourCandles = ohlcvs.map((candle: any) => {
-            return new ExchangeCandlestick(
-              me.getName(),
-              symbol.symbol,
-              period,
-              Math.round(candle[0] / 1000),
-              candle[1],
-              candle[2],
-              candle[3],
-              candle[4],
-              candle[5]
-            );
-          });
-
-          await me.candleImporter.insertThrottledCandles(ourCandles);
-        });
-      });
-    });
   }
 
   /**

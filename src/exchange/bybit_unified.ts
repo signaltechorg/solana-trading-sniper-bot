@@ -110,26 +110,6 @@ export class BybitUnified {
       me.logger.info(`${this.getName()}: Starting as anonymous; no trading possible`);
     }
 
-    symbols.forEach(symbol => {
-      symbol.periods.forEach((period: string) => {
-        // for bot init prefill data: load latest candles from api
-        this.queue.add(async () => {
-          let candles;
-          try {
-            candles = await exchange.fetchOHLCV(symbol.symbol, period, undefined, 500);
-          } catch (e) {
-            logger.error('backfill error bybit', symbol.symbol, period, e);
-            return;
-          }
-
-          const candleSticks = candles.map(
-            t => new ExchangeCandlestick(me.getName(), symbol.symbol, period, Math.round(t[0] / 1000), t[1], t[2], t[3], t[4], t[5])
-          );
-
-          await this.candleImporter.insertThrottledCandles(candleSticks);
-        });
-      });
-    });
   }
 
   authInit(apiKey: string, secret: string): void {

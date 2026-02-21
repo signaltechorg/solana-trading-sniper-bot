@@ -106,26 +106,6 @@ export class BinanceMargin {
       });
 
       symbol.periods.forEach((interval: string) => {
-        // backfill
-        this.queue.add(async () => {
-          const candles = await client.candles({ symbol: symbol.symbol, limit: 500, interval: interval as any });
-          const ourCandles = candles.map((candle: any) => {
-            return new ExchangeCandlestick(
-              'binance_margin',
-              symbol.symbol,
-              interval,
-              Math.round(candle.openTime / 1000),
-              parseFloat(candle.open),
-              parseFloat(candle.high),
-              parseFloat(candle.low),
-              parseFloat(candle.close),
-              parseFloat(candle.volume)
-            );
-          });
-
-          await this.candleImport.insertThrottledCandles(ourCandles);
-        });
-
         // live candles
         tickersToOpen++;
         if (tickersToOpen < 200) {
