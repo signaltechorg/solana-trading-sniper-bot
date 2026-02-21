@@ -4,6 +4,7 @@ export interface Profile {
   exchange: string;
   apiKey?: string;
   secret?: string;
+  bots?: Bot[];
 }
 
 export interface Balance {
@@ -68,4 +69,31 @@ export interface RecentOrderPair {
   profileName: string;
   pair: string;
   lastUsed: string;
+}
+
+// Bot-related types
+export type BotMode = 'watch' | 'trade';
+export type BotStatus = 'stopped' | 'running';
+
+export interface Bot {
+  id: string;
+  name: string;
+  strategy: string;
+  pair: string;
+  interval: string;
+  capital: number;
+  mode: BotMode;
+  status: BotStatus;
+  options?: Record<string, any>;
+}
+
+export interface BotConfig {
+  name: string;
+  strategy: string;
+  pair: string;
+  interval: string;
+  capital: number;
+  mode: BotMode;
+  status?: BotStatus;
+  options?: Record<string, any>;
 }

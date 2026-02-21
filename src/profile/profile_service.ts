@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ccxt from 'ccxt';
-import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, RecentOrderPair } from './types';
+import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, RecentOrderPair, Bot, BotConfig } from './types';
 import {
   fetchMarketData,
   placeLimitOrder,
@@ -249,5 +249,116 @@ export class ProfileService {
     }
 
     this.writeConfig(config);
+  }
+
+  // Bot management methods
+
+  /**
+   * Get all bots for a profile
+   */
+  getBots(profileId: string): Bot[] {
+    const profile = this.getProfile(profileId);
+    return profile?.bots || [];
+  }
+
+  /**
+   * Get a specific bot by ID
+   */
+  getBot(profileId: string, botId: string): Bot | undefined {
+    const bots = this.getBots(profileId);
+    return bots.find(b => b.id === botId);
+  }
+
+  /**
+   * Create a new bot for a profile
+   */
+  createBot(profileId: string, config: BotConfig): Bot {
+    const configData = this.readConfig();
+    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+
+    if (profileIndex === -1) {
+      throw new Error(`Profile with id ${profileId} not found`);
+    }
+
+    const bot: Bot = {
+      id: 'bot_' + this.generateId(),
+      name: config.name,
+      strategy: config.strategy,
+      pair: config.pair,
+      interval: config.interval,
+      capital: config.capital,
+      mode: config.mode,
+      status: 'stopped',
+      options: config.options,
+    };
+
+    if (!configData.profiles[profileIndex].bots) {
+      configData.profiles[profileIndex].bots = [];
+    }
+
+    configData.profiles[profileIndex].bots!.push(bot);
+    this.writeConfig(configData);
+
+    return bot;
+  }
+
+  /**
+   * Update a bot's configuration
+   */
+  updateBot(profileId: string, botId: string, updates: Partial<BotConfig>): Bot {
+    const configData = this.readConfig();
+    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+
+    if (profileIndex === -1) {
+      throw new Error(`Profile with id ${profileId} not found`);
+    }
+
+    const bots = configData.profiles[profileIndex].bots || [];
+    const botIndex = bots.findIndex(b => b.id === botId);
+
+    if (botIndex === -1) {
+      throw new Error(`Bot with id ${botId} not found`);
+    }
+
+    const existingBot = bots[botIndex];
+
+    const updatedBot: Bot = {
+      ...existingBot,
+      name: updates.name ?? existingBot.name,
+      strategy: updates.strategy ?? existingBot.strategy,
+      pair: updates.pair ?? existingBot.pair,
+      interval: updates.interval ?? existingBot.interval,
+      capital: updates.capital ?? existingBot.capital,
+      mode: updates.mode ?? existingBot.mode,
+      status: updates.status ?? existingBot.status,
+      options: updates.options !== undefined ? updates.options : existingBot.options,
+    };
+
+    configData.profiles[profileIndex].bots![botIndex] = updatedBot;
+    this.writeConfig(configData);
+
+    return updatedBot;
+  }
+
+  /**
+   * Delete a bot
+   */
+  deleteBot(profileId: string, botId: string): void {
+    const configData = this.readConfig();
+    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+
+    if (profileIndex === -1) {
+      throw new Error(`Profile with id ${profileId} not found`);
+    }
+
+    const bots = configData.profiles[profileIndex].bots || [];
+    const botIndex = bots.findIndex(b => b.id === botId);
+
+    if (botIndex === -1) {
+      throw new Error(`Bot with id ${botId} not found`);
+    }
+
+    configData.profiles[profileIndex].bots = bots.filter(b => b.id !== botId);
+    this.writeConfig(configData);
   }
 }

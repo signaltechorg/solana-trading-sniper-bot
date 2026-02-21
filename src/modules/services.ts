@@ -871,7 +871,7 @@ const services: Services = {
   },
 
   getProfileController: function (templateHelpers: any): ProfileController {
-    return new ProfileController(templateHelpers, this.getProfileService());
+    return new ProfileController(templateHelpers, this.getProfileService(), this.getProfilePairService(), this.getV2StrategyRegistry());
   },
 
   getProfileService: function (): ProfileService {
