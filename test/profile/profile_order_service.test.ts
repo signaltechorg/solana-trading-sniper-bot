@@ -1,4 +1,6 @@
 import assert from 'assert';
+import { mock, when, instance, verify, capture, anything } from 'ts-mockito';
+import * as ccxt from 'ccxt';
 import {
   placeLimitOrder,
   placeMarketOrder,
@@ -7,7 +9,7 @@ import {
 } from '../../src/profile/profile_order_service';
 import { OrderParams } from '../../src/profile/types';
 
-// ─── Market fixtures ────────────────────────────────────────────────────────
+// ─── Market fixtures ─────────────────────────────────────────────────────────
 
 const SPOT_MARKET = {
   base: 'ETH',
@@ -15,7 +17,7 @@ const SPOT_MARKET = {
   type: 'spot',
   precision: { amount: 0.00001, price: 0.01 },
   limits: { amount: { min: 0.00001, max: 2600 } }
-};
+} as any;
 
 // Bybit ETH/USDT:USDT linear – lot size 0.01 ETH (the problematic one)
 const SWAP_MARKET = {
@@ -24,48 +26,18 @@ const SWAP_MARKET = {
   type: 'swap',
   precision: { amount: 0.01, price: 0.01 },
   limits: { amount: { min: 0.01, max: 8000 } }
-};
+} as any;
 
-// ─── Mock factory ────────────────────────────────────────────────────────────
-
-function makeMockOrder(overrides: Record<string, any> = {}) {
-  return {
-    id: 'order-123',
-    status: 'open',
-    type: 'limit',
-    side: 'buy',
-    price: 2700,
-    amount: 0.05,
-    filled: 0,
-    remaining: 0.05,
-    ...overrides
-  };
-}
-
-/**
- * Creates a mock CCXT exchange. `markets` is a dict of pair → market object.
- * `createOrderResult` is returned from createOrder (or a function for per-call control).
- */
-function makeMockExchange(options: {
-  markets: Record<string, any>;
-  createOrderResult?: any | ((pair: string, type: string, side: string, amount: number, price?: number) => any);
-  tickerLast?: number;
-}) {
-  return {
-    async loadMarkets() {
-      return options.markets;
-    },
-    async fetchTicker(_pair: string) {
-      return { last: options.tickerLast ?? 2700, close: options.tickerLast ?? 2700 };
-    },
-    async createOrder(pair: string, type: string, side: string, amount: number, price?: number) {
-      if (typeof options.createOrderResult === 'function') {
-        return options.createOrderResult(pair, type, side, amount, price);
-      }
-      return options.createOrderResult ?? makeMockOrder({ amount, price });
-    }
-  };
-}
+const MOCK_ORDER = {
+  id: 'order-123',
+  status: 'open',
+  type: 'limit',
+  side: 'buy',
+  price: 2700,
+  amount: 0.05,
+  filled: 0,
+  remaining: 0.05
+} as any;
 
 // ─── roundAmountDown ─────────────────────────────────────────────────────────
 
@@ -108,177 +80,112 @@ describe('#roundToPrecision', () => {
 
 describe('#placeLimitOrder', () => {
   it('rejects when price is missing', async () => {
-    const exchange = makeMockExchange({ markets: { 'ETH/USDT': SPOT_MARKET } });
+    const exchange = instance(mock<ccxt.Exchange>());
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.05
-      // price intentionally omitted
-    };
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'limit', amount: 0.05 };
 
-    await assert.rejects(() => placeLimitOrder(exchange as any, params), /Price is required/);
+    await assert.rejects(() => placeLimitOrder(exchange, params), /Price is required/);
   });
 
   it('rejects when market is not found', async () => {
-    const exchange = makeMockExchange({ markets: {} });
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({});
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.05,
-      price: 2700
-    };
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'limit', amount: 0.05, price: 2700 };
 
-    await assert.rejects(() => placeLimitOrder(exchange as any, params), /Market ETH\/USDT not found/);
+    await assert.rejects(() => placeLimitOrder(exchange, params), /Market ETH\/USDT not found/);
   });
 
-  it('places a limit order on spot with base currency amount', async () => {
-    let capturedAmount: number | undefined;
-    let capturedPrice: number | undefined;
+  it('passes the correct amount and price to createOrder for spot (base currency)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT': SPOT_MARKET });
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
 
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT': SPOT_MARKET },
-      createOrderResult: (_p: any, _t: any, _s: any, amount: number, price: number) => {
-        capturedAmount = amount;
-        capturedPrice = price;
-        return makeMockOrder({ amount, price });
-      }
-    });
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'limit', amount: 0.05, price: 2700 };
+    const result = await placeLimitOrder(exchange, params);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.05,
-      price: 2700
-    };
-
-    const result = await placeLimitOrder(exchange as any, params);
-
-    assert.strictEqual(capturedAmount, 0.05);
-    assert.strictEqual(capturedPrice, 2700);
+    const [pair, type, side, amount, price] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(pair, 'ETH/USDT');
+    assert.strictEqual(type, 'limit');
+    assert.strictEqual(side, 'buy');
+    assert.strictEqual(amount, 0.05);
+    assert.strictEqual(price, 2700);
     assert.strictEqual(result.id, 'order-123');
   });
 
-  it('places a limit order on spot with quote currency amount (isQuoteCurrency)', async () => {
-    let capturedAmount: number | undefined;
+  it('converts quote currency to base amount before calling createOrder (isQuoteCurrency)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT': SPOT_MARKET });
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
 
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT': SPOT_MARKET },
-      createOrderResult: (_p: any, _t: any, _s: any, amount: number) => {
-        capturedAmount = amount;
-        return makeMockOrder({ amount });
-      }
-    });
+    // 270 USDT / 2700 = 0.1 ETH
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'limit', amount: 270, price: 2700, isQuoteCurrency: true };
+    await placeLimitOrder(exchange, params);
 
-    // 12 USDT / 2700 = 0.00444 ETH → rounds to 0.00444 at 0.00001 precision
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 12,
-      price: 2700,
-      isQuoteCurrency: true
-    };
-
-    await placeLimitOrder(exchange as any, params);
-    assert.ok(capturedAmount! > 0, 'amount should be > 0 for spot');
+    const [, , , amount] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(amount, 0.1);
   });
 
-  it('rejects on swap when quote currency amount is too small (the Bybit bug)', async () => {
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET }
-    });
+  it('rejects on swap when quote currency amount converts to less than the lot size (the Bybit bug)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    const exchange = instance(mockedExchange);
 
-    // 12 USDT / 2700 ≈ 0.00444 ETH – rounds to 0 with 0.01 swap precision
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 12,
-      price: 2700,
-      isQuoteCurrency: true
-    };
+    // 12 USDT / 2700 ≈ 0.00444 ETH → rounds to 0 at 0.01 precision
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'limit', amount: 12, price: 2700, isQuoteCurrency: true };
 
     await assert.rejects(
-      () => placeLimitOrder(exchange as any, params),
+      () => placeLimitOrder(exchange, params),
       (err: Error) => {
-        assert.ok(err.message.includes('amount too small'), `Unexpected error: ${err.message}`);
-        assert.ok(err.message.includes('0.01 ETH'), `Should mention minimum: ${err.message}`);
+        assert.ok(err.message.includes('amount too small'), err.message);
+        assert.ok(err.message.includes('0.01 ETH'), err.message);
         return true;
       }
     );
+
+    // createOrder must never have been reached
+    verify(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).never();
   });
 
-  it('rejects on swap when base amount is below minimum lot size', async () => {
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET }
-    });
+  it('rejects on swap when base amount is directly below minimum lot size', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.005, // below 0.01 ETH minimum
-      price: 2700
-    };
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'limit', amount: 0.005, price: 2700 };
 
-    await assert.rejects(
-      () => placeLimitOrder(exchange as any, params),
-      /amount too small/
-    );
+    await assert.rejects(() => placeLimitOrder(exchange, params), /amount too small/);
+    verify(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).never();
   });
 
-  it('places a limit order on swap with sufficient base amount', async () => {
-    let capturedAmount: number | undefined;
+  it('places a limit order on swap with a sufficient base amount', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
 
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET },
-      createOrderResult: (_p: any, _t: any, _s: any, amount: number) => {
-        capturedAmount = amount;
-        return makeMockOrder({ amount });
-      }
-    });
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'limit', amount: 0.05, price: 2700 };
+    await placeLimitOrder(exchange, params);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.05,
-      price: 2700
-    };
-
-    const result = await placeLimitOrder(exchange as any, params);
-
-    assert.strictEqual(capturedAmount, 0.05);
-    assert.ok(result.id, 'should return order with id');
+    const [, , , amount] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(amount, 0.05);
   });
 
-  it('floors amount down (never rounds up) to not exceed balance', async () => {
-    let capturedAmount: number | undefined;
+  it('floors amount down to avoid exceeding balance (never rounds up)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
 
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET },
-      createOrderResult: (_p: any, _t: any, _s: any, amount: number) => {
-        capturedAmount = amount;
-        return makeMockOrder({ amount });
-      }
-    });
+    // 0.059 should floor to 0.05, not round to 0.06
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'limit', amount: 0.059, price: 2700 };
+    await placeLimitOrder(exchange, params);
 
-    // 0.059 ETH should floor to 0.05, not round to 0.06
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'limit',
-      amount: 0.059,
-      price: 2700
-    };
-
-    await placeLimitOrder(exchange as any, params);
-    assert.strictEqual(capturedAmount, 0.05);
+    const [, , , amount] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(amount, 0.05);
   });
 });
 
@@ -286,155 +193,102 @@ describe('#placeLimitOrder', () => {
 
 describe('#placeMarketOrder', () => {
   it('rejects when market is not found', async () => {
-    const exchange = makeMockExchange({ markets: {} });
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({});
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 0.05
-    };
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'market', amount: 0.05 };
 
-    await assert.rejects(() => placeMarketOrder(exchange as any, params), /Market ETH\/USDT:USDT not found/);
+    await assert.rejects(() => placeMarketOrder(exchange, params), /Market ETH\/USDT:USDT not found/);
   });
 
   it('rejects when ticker price is unavailable for quote currency conversion', async () => {
-    const exchange = {
-      async loadMarkets() {
-        return { 'ETH/USDT:USDT': SWAP_MARKET };
-      },
-      async fetchTicker(_pair: string) {
-        return { last: null, close: null }; // no price available
-      }
-    };
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    when(mockedExchange.fetchTicker(anything())).thenResolve({ last: null, close: null } as any);
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 100,
-      isQuoteCurrency: true
-    };
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'market', amount: 100, isQuoteCurrency: true };
+
+    await assert.rejects(() => placeMarketOrder(exchange, params), /Could not fetch current price/);
+  });
+
+  it('passes the correct args to createOrder for a swap market order (base currency)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything())).thenResolve({ ...MOCK_ORDER, type: 'market' });
+    const exchange = instance(mockedExchange);
+
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'sell', type: 'market', amount: 0.05 };
+    await placeMarketOrder(exchange, params);
+
+    const [pair, type, side, amount] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(pair, 'ETH/USDT:USDT');
+    assert.strictEqual(type, 'market');
+    assert.strictEqual(side, 'sell');
+    assert.strictEqual(amount, 0.05);
+  });
+
+  it('converts quote currency to base amount using ticker price', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT': SPOT_MARKET });
+    when(mockedExchange.fetchTicker(anything())).thenResolve({ last: 2700, close: 2700 } as any);
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
+
+    // 270 USDT / 2700 = 0.1 ETH
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'market', amount: 270, isQuoteCurrency: true };
+    await placeMarketOrder(exchange, params);
+
+    const [, , , amount] = capture(mockedExchange.createOrder).first();
+    assert.strictEqual(amount, 0.1);
+  });
+
+  it('rejects on swap when quote currency amount converts to less than lot size (the Bybit bug)', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    when(mockedExchange.fetchTicker(anything())).thenResolve({ last: 2700, close: 2700 } as any);
+    const exchange = instance(mockedExchange);
+
+    // 12 USDT / 2700 ≈ 0.00444 ETH → rounds to 0 at 0.01 swap precision
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'market', amount: 12, isQuoteCurrency: true };
 
     await assert.rejects(
-      () => placeMarketOrder(exchange as any, params),
-      /Could not fetch current price/
-    );
-  });
-
-  it('places a market order on swap with sufficient base amount', async () => {
-    let capturedArgs: any[] = [];
-
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET },
-      createOrderResult: (pair: any, type: any, side: any, amount: number) => {
-        capturedArgs = [pair, type, side, amount];
-        return makeMockOrder({ type: 'market', amount });
-      }
-    });
-
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'sell',
-      type: 'market',
-      amount: 0.05
-    };
-
-    const result = await placeMarketOrder(exchange as any, params);
-
-    assert.strictEqual(capturedArgs[0], 'ETH/USDT:USDT');
-    assert.strictEqual(capturedArgs[1], 'market');
-    assert.strictEqual(capturedArgs[2], 'sell');
-    assert.strictEqual(capturedArgs[3], 0.05);
-    assert.ok(result.id);
-  });
-
-  it('converts quote currency to base and places market order on spot', async () => {
-    let capturedAmount: number | undefined;
-
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT': SPOT_MARKET },
-      tickerLast: 2700,
-      createOrderResult: (_p: any, _t: any, _s: any, amount: number) => {
-        capturedAmount = amount;
-        return makeMockOrder({ type: 'market', amount });
-      }
-    });
-
-    // 27 USDT / 2700 = 0.01 ETH → valid for spot (min 0.00001)
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 27,
-      isQuoteCurrency: true
-    };
-
-    await placeMarketOrder(exchange as any, params);
-    assert.ok(capturedAmount! > 0);
-  });
-
-  it('rejects on swap when quote currency amount is too small (the Bybit bug)', async () => {
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET },
-      tickerLast: 2700
-    });
-
-    // 12 USDT / 2700 ≈ 0.00444 ETH → rounds to 0 at 0.01 precision
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 12,
-      isQuoteCurrency: true
-    };
-
-    await assert.rejects(
-      () => placeMarketOrder(exchange as any, params),
+      () => placeMarketOrder(exchange, params),
       (err: Error) => {
-        assert.ok(err.message.includes('amount too small'), `Unexpected error: ${err.message}`);
-        assert.ok(err.message.includes('0.01 ETH'), `Should mention minimum: ${err.message}`);
-        assert.ok(err.message.includes('USDT'), `Should hint to increase USDT: ${err.message}`);
+        assert.ok(err.message.includes('amount too small'), err.message);
+        assert.ok(err.message.includes('0.01 ETH'), err.message);
+        assert.ok(err.message.includes('USDT'), err.message); // hints to increase USDT
         return true;
       }
     );
+
+    verify(mockedExchange.createOrder(anything(), anything(), anything(), anything())).never();
   });
 
-  it('rejects on swap when base amount is below minimum lot size', async () => {
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT:USDT': SWAP_MARKET }
-    });
+  it('rejects on swap when base amount is directly below minimum lot size', async () => {
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT:USDT': SWAP_MARKET });
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT:USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 0.005 // below 0.01 ETH minimum
-    };
+    const params: OrderParams = { pair: 'ETH/USDT:USDT', side: 'buy', type: 'market', amount: 0.005 };
 
-    await assert.rejects(
-      () => placeMarketOrder(exchange as any, params),
-      /amount too small/
-    );
+    await assert.rejects(() => placeMarketOrder(exchange, params), /amount too small/);
+    verify(mockedExchange.createOrder(anything(), anything(), anything(), anything())).never();
   });
 
-  it('spot succeeds with same small USDT amount that fails on swap', async () => {
-    // This documents the key behavioral difference between spot and swap
-    const exchange = makeMockExchange({
-      markets: { 'ETH/USDT': SPOT_MARKET },
-      tickerLast: 2700,
-      createOrderResult: makeMockOrder({ type: 'market' })
-    });
+  it('spot succeeds with the same small USDT amount that would fail on swap', async () => {
+    // Documents the key behavioral difference: spot min is 0.00001 ETH, swap min is 0.01 ETH
+    const mockedExchange = mock<ccxt.Exchange>();
+    when(mockedExchange.loadMarkets()).thenResolve({ 'ETH/USDT': SPOT_MARKET });
+    when(mockedExchange.fetchTicker(anything())).thenResolve({ last: 2700, close: 2700 } as any);
+    when(mockedExchange.createOrder(anything(), anything(), anything(), anything())).thenResolve(MOCK_ORDER);
+    const exchange = instance(mockedExchange);
 
-    const params: OrderParams = {
-      pair: 'ETH/USDT',
-      side: 'buy',
-      type: 'market',
-      amount: 12, // 12 USDT – would fail on swap but not on spot
-      isQuoteCurrency: true
-    };
+    const params: OrderParams = { pair: 'ETH/USDT', side: 'buy', type: 'market', amount: 12, isQuoteCurrency: true };
+    const result = await placeMarketOrder(exchange, params);
 
-    const result = await placeMarketOrder(exchange as any, params);
     assert.ok(result.id, 'spot order should succeed');
+    verify(mockedExchange.createOrder(anything(), anything(), anything(), anything())).once();
   });
 });
