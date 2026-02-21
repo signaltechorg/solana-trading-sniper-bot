@@ -35,7 +35,7 @@ export class ProfilePairService {
 
     for (const profile of profiles) {
       try {
-        const markets = await this.getMarketsForExchange(profile.exchange, profile);
+        const markets = await this.getMarketsForExchange(profile.exchange);
 
         for (const market of markets) {
           if (market.active && !market.option) {
@@ -65,26 +65,22 @@ export class ProfilePairService {
   }
 
   /**
-   * Get markets for an exchange with caching
+   * Get markets for an exchange with caching (public data, no auth needed)
    */
-  private async getMarketsForExchange(exchangeName: string, profile: Profile): Promise<any[]> {
-    const cacheKey = `${exchangeName}:${profile.apiKey ? 'auth' : 'public'}`;
-
+  private async getMarketsForExchange(exchangeName: string): Promise<any[]> {
     // Check cache
-    const cached = this.marketCache.get(cacheKey) as any[] | undefined;
+    const cached = this.marketCache.get(exchangeName) as any[] | undefined;
     if (cached) {
       return cached;
     }
 
-    // Load from exchange
+    // Load from exchange (no auth needed for public market data)
     const ExchangeClass = (ccxt as any)[exchangeName];
     if (!ExchangeClass) {
       throw new Error(`Exchange ${exchangeName} not supported`);
     }
 
     const exchange = new ExchangeClass({
-      apiKey: profile.apiKey,
-      secret: profile.secret,
       enableRateLimit: true
     });
 
@@ -92,7 +88,7 @@ export class ProfilePairService {
     const markets = Object.values(exchange.markets) as any[];
 
     // Store in cache
-    this.marketCache.set(cacheKey, markets);
+    this.marketCache.set(exchangeName, markets);
 
     return markets;
   }
