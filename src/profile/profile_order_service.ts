@@ -154,7 +154,62 @@ export async function fetchOpenOrders(
   exchange: ccxt.Exchange,
   pair?: string
 ): Promise<OrderInfo[]> {
-  const orders = await exchange.fetchOpenOrders(pair);
+  let orders: any[];
+
+  // When fetching ALL orders on Bybit, we need to specify categories
+  if (!pair && exchange.id.toLowerCase().includes('bybit')) {
+    orders = [];
+    for (const category of ['spot', 'linear']) {
+      try {
+        const categoryOrders = await exchange.fetchOpenOrders(undefined, undefined, undefined, { category });
+        orders = orders.concat(categoryOrders);
+      } catch (e: any) {
+        console.log(`Bybit ${category} orders fetch failed: ${e.message}`);
+      }
+    }
+  } else {
+    orders = await exchange.fetchOpenOrders(pair);
+  }
+
+  return orders.map(order => ({
+    id: order.id,
+    pair: order.symbol,
+    type: order.type ?? 'unknown',
+    side: order.side ?? 'unknown',
+    price: order.price ?? 0,
+    amount: order.amount ?? 0,
+    filled: order.filled ?? 0,
+    remaining: order.remaining ?? 0,
+    status: order.status ?? 'unknown',
+    timestamp: order.timestamp ?? 0,
+    raw: order
+  }));
+}
+
+/**
+ * Fetches closed/filled orders from the exchange
+ */
+export async function fetchClosedOrders(
+  exchange: ccxt.Exchange,
+  pair?: string,
+  limit?: number
+): Promise<OrderInfo[]> {
+  let orders: any[];
+
+  // When fetching ALL orders on Bybit, we need to specify categories
+  if (!pair && exchange.id.toLowerCase().includes('bybit')) {
+    orders = [];
+    for (const category of ['spot', 'linear']) {
+      try {
+        const categoryOrders = await exchange.fetchClosedOrders(undefined, undefined, limit, { category });
+        orders = orders.concat(categoryOrders);
+      } catch (e: any) {
+        console.log(`Bybit ${category} closed orders fetch failed: ${e.message}`);
+      }
+    }
+  } else {
+    orders = await exchange.fetchClosedOrders(pair, undefined, limit);
+  }
 
   return orders.map(order => ({
     id: order.id,
@@ -177,7 +232,7 @@ export async function fetchOpenOrders(
 export async function cancelOrder(
   exchange: ccxt.Exchange,
   orderId: string,
-  pair?: string
+  pair: string
 ): Promise<any> {
   return await exchange.cancelOrder(orderId, pair);
 }

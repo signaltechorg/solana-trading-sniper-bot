@@ -1,22 +1,25 @@
 import { BaseController, TemplateHelpers } from './base_controller';
 import { ExchangeManager } from '../modules/exchange/exchange_manager';
 import { Tickers } from '../storage/tickers';
-import { getPercentDifferent } from '../utils/order_util';
+import { ProfileService } from '../profile/profile_service';
+import { OrderInfo } from '../profile/types';
 import express from 'express';
 
 export class TradesController extends BaseController {
   constructor(
     templateHelpers: TemplateHelpers,
     private exchangeManager: ExchangeManager,
-    private tickers: Tickers
+    private tickers: Tickers,
+    private profileService: ProfileService
   ) {
     super(templateHelpers);
   }
 
   private async getTradesData() {
     const positions: any[] = [];
-    const orders: any[] = [];
+    const openOrders: any[] = [];
 
+    // Fetch positions from running exchanges (bot positions)
     const exchanges = this.exchangeManager.all();
     for (const key in exchanges) {
       const exchange = exchanges[key];
@@ -39,26 +42,37 @@ export class TradesController extends BaseController {
           currencyProfit: position.getProfit() ? (currencyValue || 0) + ((currencyValue || 0) / 100) * position.getProfit() : undefined
         });
       });
-
-      const myOrders = await exchange.getOrders();
-      myOrders.forEach((order: any) => {
-        const items: any = {
-          exchange: exchange.getName(),
-          order: order
-        };
-
-        const ticker = this.tickers.get(exchange.getName(), order.symbol);
-        if (ticker) {
-          items.percent_to_price = getPercentDifferent(order.price, ticker.bid);
-        }
-
-        orders.push(items);
-      });
     }
 
+    // Fetch open orders from all profiles
+    const profiles = this.profileService.getProfiles();
+    for (const profile of profiles) {
+      if (!profile.apiKey || !profile.secret) {
+        continue;
+      }
+
+      try {
+        const orders = await this.profileService.fetchOpenOrders(profile.id);
+
+        orders.forEach((order: OrderInfo) => {
+          openOrders.push({
+            profileId: profile.id,
+            profileName: profile.name,
+            exchange: profile.exchange,
+            order
+          });
+        });
+      } catch (e) {
+        console.log(`Failed to fetch orders for profile ${profile.name}: ${String(e)}`);
+      }
+    }
+
+    // Sort by timestamp descending
+    openOrders.sort((a, b) => (b.order.timestamp || 0) - (a.order.timestamp || 0));
+
     return {
-      orders: orders.sort((a: any, b: any) => a.order.symbol.localeCompare(b.order.symbol)),
-      positions: positions.sort((a: any, b: any) => a.position.symbol.localeCompare(b.position.symbol))
+      positions: positions.sort((a: any, b: any) => a.position.symbol.localeCompare(b.position.symbol)),
+      openOrders
     };
   }
 
@@ -70,22 +84,19 @@ export class TradesController extends BaseController {
         activePage: 'trades',
         title: 'Trades | Crypto Bot',
         positions: data.positions,
-        orders: data.orders,
+        openOrders: data.openOrders,
         updatedAt: new Date().toLocaleTimeString()
       });
     });
 
     // Cancel order route (from trades view)
-    router.get('/order/:exchange/:id', async (req: any, res: any) => {
-      const exchangeName = req.params.exchange;
-      const { id } = req.params;
-
-      const exchange = this.exchangeManager.get(exchangeName);
+    router.get('/order/:profileId/:pair/:id', async (req: any, res: any) => {
+      const { profileId, pair, id } = req.params;
 
       try {
-        await exchange.cancelOrder(id);
+        await this.profileService.cancelOrder(profileId, id, decodeURIComponent(pair));
       } catch (e) {
-        console.log(`Cancel order error: ${JSON.stringify([exchangeName, id, String(e)])}`);
+        console.log(`Cancel order error: ${JSON.stringify([profileId, pair, id, String(e)])}`);
       }
 
       res.redirect('/trades');

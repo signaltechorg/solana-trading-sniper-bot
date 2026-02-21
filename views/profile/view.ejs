@@ -48,6 +48,9 @@
                 <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="balances">
                     Balances
                 </button>
+                <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="orders">
+                    Orders
+                </button>
                 <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="bots">
                     Bots
                 </button>
@@ -78,6 +81,25 @@
                     <div class="p-8 text-center text-gray-400">
                         <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                         <p>Loading balances...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Orders -->
+        <div id="tab-orders" class="tab-content hidden">
+            <div class="bg-white border border-gray-200 rounded">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <span class="font-medium">Orders</span>
+                    <button type="button" id="refresh-orders" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                    </button>
+                </div>
+
+                <div id="orders-content">
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Loading orders...</p>
                     </div>
                 </div>
             </div>
@@ -175,6 +197,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         // Load balances when tab is first shown
         if (tabId === 'balances' && !window.balancesLoaded) {
             loadBalances();
+        }
+
+        // Load orders when tab is first shown
+        if (tabId === 'orders' && !window.ordersLoaded) {
+            loadOrders();
         }
     });
 });
@@ -279,5 +306,172 @@ function loadBalances() {
 document.getElementById('refresh-balances').addEventListener('click', function() {
     window.balancesLoaded = false;
     loadBalances();
+});
+
+function formatPrice(num) {
+    if (num === null || num === undefined) return '-';
+    if (num === 0) return '0';
+    if (num < 0.0001 && num > 0) return num.toExponential(2);
+    if (num < 1) return num.toFixed(6);
+    if (num < 1000) return num.toFixed(4);
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatAmount(num) {
+    if (num === null || num === undefined) return '-';
+    if (num === 0) return '0';
+    if (num < 0.0001 && num > 0) return num.toExponential(2);
+    if (num < 1) return num.toFixed(6);
+    return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+function formatDate(timestamp) {
+    if (!timestamp) return '-';
+    return new Date(timestamp).toLocaleString();
+}
+
+function getStatusBadge(status) {
+    const statusClasses = {
+        'open': 'bg-blue-100 text-blue-800',
+        'closed': 'bg-gray-100 text-gray-800',
+        'filled': 'bg-green-100 text-green-800',
+        'canceled': 'bg-red-100 text-red-800',
+        'cancelled': 'bg-red-100 text-red-800',
+        'expired': 'bg-yellow-100 text-yellow-800',
+        'rejected': 'bg-red-100 text-red-800'
+    };
+    const cls = statusClasses[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return `<span class="px-2 py-1 rounded text-xs ${cls}">${status || 'unknown'}</span>`;
+}
+
+function getSideBadge(side) {
+    const cls = side === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    return `<span class="px-2 py-1 rounded text-xs ${cls}">${side || '-'}</span>`;
+}
+
+function loadOrders() {
+    const contentEl = document.getElementById('orders-content');
+
+    if (!hasCredentials) {
+        contentEl.innerHTML = `
+            <div class="p-4">
+                <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch orders.
+                    <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    contentEl.innerHTML = `
+        <div class="p-8 text-center text-gray-400">
+            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+            <p>Loading orders...</p>
+        </div>
+    `;
+
+    fetch('/api/profiles/' + profileId + '/orders')
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                contentEl.innerHTML = `
+                    <div class="p-4">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Combine open and closed orders, sort by timestamp descending
+            const openOrders = (data.open || []).map(o => ({...o, isOpen: true}));
+            const closedOrders = (data.closed || []).map(o => ({...o, isOpen: false}));
+            const allOrders = [...openOrders, ...closedOrders].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            if (allOrders.length === 0) {
+                contentEl.innerHTML = `<div class="p-4 text-center text-gray-400">No orders</div>`;
+                return;
+            }
+
+            let html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Pair</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Side</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Type</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Price</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Amount</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Filled</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Status</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Date</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+            `;
+
+            allOrders.forEach(function(order) {
+                const actionBtn = order.isOpen
+                    ? `<button onclick="cancelOrder('${order.pair}', '${order.id}')" class="text-gray-400 hover:text-red-600" title="Cancel"><i class="fas fa-window-close"></i></button>`
+                    : '';
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 font-mono text-xs">${order.pair}</td>
+                        <td class="py-2 px-4">${getSideBadge(order.side)}</td>
+                        <td class="py-2 px-4">${getTypeBadge(order.type)}</td>
+                        <td class="py-2 px-4 text-right font-mono">${formatPrice(order.price)}</td>
+                        <td class="py-2 px-4 text-right font-mono">${formatAmount(order.amount)}</td>
+                        <td class="py-2 px-4 text-right font-mono text-gray-500">${formatAmount(order.filled)}</td>
+                        <td class="py-2 px-4">${getStatusBadge(order.status)}</td>
+                        <td class="py-2 px-4 text-gray-500 text-xs">${formatDate(order.timestamp)}</td>
+                        <td class="py-2 px-4">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            contentEl.innerHTML = html;
+            window.ordersLoaded = true;
+        })
+        .catch(err => {
+            contentEl.innerHTML = `
+                <div class="p-4">
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load orders: ${err.message}
+                    </div>
+                </div>
+            `;
+        });
+}
+
+function getTypeBadge(type) {
+    return `<span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">${type || '-'}</span>`;
+}
+
+function cancelOrder(pair, orderId) {
+    if (!confirm('Cancel this order?')) return;
+
+    fetch('/api/profiles/' + profileId + '/orders/' + encodeURIComponent(pair) + '/cancel/' + orderId)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert('Failed to cancel order: ' + data.error);
+            } else {
+                window.ordersLoaded = false;
+                loadOrders();
+            }
+        })
+        .catch(err => {
+            alert('Failed to cancel order: ' + err.message);
+        });
+}
+
+// Refresh orders button
+document.getElementById('refresh-orders').addEventListener('click', function() {
+    window.ordersLoaded = false;
+    loadOrders();
 });
 </script>

@@ -7,6 +7,7 @@ import {
   placeLimitOrder,
   placeMarketOrder,
   fetchOpenOrders as fetchOpenOrdersCCXT,
+  fetchClosedOrders as fetchClosedOrdersCCXT,
   cancelOrder as cancelOrderCCXT,
   cancelAllOrders as cancelAllOrdersCCXT
 } from './profile_order_service';
@@ -173,6 +174,26 @@ export class ProfileService {
   }
 
   /**
+   * Fetch closed/filled orders for a profile
+   */
+  async fetchClosedOrders(profileId: string, limit?: number): Promise<OrderInfo[]> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return fetchClosedOrdersCCXT(exchange, undefined, limit);
+  }
+
+  /**
+   * Fetch all orders (open and closed) for a profile
+   */
+  async fetchAllOrders(profileId: string, closedLimit: number = 10): Promise<{ open: OrderInfo[]; closed: OrderInfo[] }> {
+    const exchange = this.getExchangeForProfile(profileId);
+    const [open, closed] = await Promise.all([
+      fetchOpenOrdersCCXT(exchange),
+      fetchClosedOrdersCCXT(exchange, undefined, closedLimit)
+    ]);
+    return { open, closed };
+  }
+
+  /**
    * Place an order (limit or market)
    */
   async placeOrder(profileId: string, params: OrderParams): Promise<OrderResult> {
@@ -191,7 +212,7 @@ export class ProfileService {
   /**
    * Cancel an order
    */
-  async cancelOrder(profileId: string, orderId: string, pair?: string): Promise<any> {
+  async cancelOrder(profileId: string, orderId: string, pair: string): Promise<any> {
     const exchange = this.getExchangeForProfile(profileId);
     return cancelOrderCCXT(exchange, orderId, pair);
   }

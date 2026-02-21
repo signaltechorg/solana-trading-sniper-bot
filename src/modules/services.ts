@@ -839,7 +839,7 @@ const services: Services = {
   },
 
   getTradesController: function (templateHelpers: any): TradesController {
-    return new TradesController(templateHelpers, this.getExchangeManager(), this.getTickers());
+    return new TradesController(templateHelpers, this.getExchangeManager(), this.getTickers(), this.getProfileService());
   },
 
   getOrdersController: function (templateHelpers: any): OrdersController {
