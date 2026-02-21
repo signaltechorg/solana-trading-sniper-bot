@@ -2,6 +2,7 @@ import { BaseController, TemplateHelpers } from './base_controller';
 import { DashboardConfigService } from '../modules/system/dashboard_config_service';
 import { ProfilePairService } from '../modules/profile_pair_service';
 import { CcxtCandlePrefillService } from '../modules/system/ccxt_candle_prefill_service';
+import { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
 import express from 'express';
 
 const EXCHANGES = [
@@ -33,7 +34,8 @@ export class DashboardSettingsController extends BaseController {
     templateHelpers: TemplateHelpers,
     private dashboardConfigService: DashboardConfigService,
     private profilePairService: ProfilePairService,
-    private ccxtCandlePrefillService: CcxtCandlePrefillService
+    private ccxtCandlePrefillService: CcxtCandlePrefillService,
+    private ccxtCandleWatchService: CcxtCandleWatchService
   ) {
     super(templateHelpers);
   }
@@ -60,6 +62,7 @@ export class DashboardSettingsController extends BaseController {
         const pairs = this.parsePairs(req.body);
         this.dashboardConfigService.saveConfig({ periods, pairs });
         this.enqueuePrefill();
+        this.ccxtCandleWatchService.restart();
         res.redirect('/dashboard/settings?saved=1');
       } catch (e) {
         console.error('Error saving dashboard settings:', e);

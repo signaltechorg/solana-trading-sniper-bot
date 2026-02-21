@@ -164,7 +164,10 @@ export class Http {
 
     console.log(`Webserver listening on: http://${ip}:${port}`);
 
-    // Prefill candles for configured dashboard pairs on startup
+    // Prefill historical candles for configured dashboard pairs on startup
     this.services.getDashboardSettingsController(this.templateHelpers).enqueuePrefill();
+
+    // Start live WebSocket candle subscriptions for dashboard pairs
+    this.services.getCcxtCandleWatchService().start();
   }
 }
