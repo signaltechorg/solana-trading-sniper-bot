@@ -105,8 +105,8 @@
                                 <div class="w-28">
                                     <label for="amount_type" class="block font-medium mb-1 text-sm">In</label>
                                     <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm" id="amount_type" name="amount_type">
-                                        <option value="asset" <%= !form || !form.amount_type || form.amount_type === 'asset' ? 'selected' : '' %>>Asset</option>
-                                        <option value="currency" <%= form && form.amount_type === 'currency' ? 'selected' : '' %>>Currency</option>
+                                        <option value="currency" <%= !form || !form.amount_type || form.amount_type === 'currency' ? 'selected' : '' %>><%= currency %></option>
+                                        <option value="asset" <%= form && form.amount_type === 'asset' ? 'selected' : '' %>><%= asset %></option>
                                     </select>
                                 </div>
                             </div>
@@ -122,55 +122,25 @@
 
             <!-- Right: Orders + Chart -->
             <div class="flex-1">
-                <!-- Orders List -->
-                <% if (orders && orders.length > 0) { %>
-                    <div class="bg-white border border-gray-200 rounded mb-4">
-                        <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                            <span class="font-medium">Open Orders (<%= orders.length %>)</span>
+                <!-- Orders List (lazy loaded) -->
+                <div class="bg-white border border-gray-200 rounded mb-4">
+                    <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <span class="font-medium">Open Orders <span id="orders-count" class="text-gray-400"></span></span>
+                        <div class="flex items-center gap-2">
+                            <button id="refresh-orders" class="text-gray-400 hover:text-blue-600 cursor-pointer" title="Refresh Orders">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                             <a href="/orders/<%= profile.id %>/<%= encodeURIComponent(pair) %>/cancel-all" class="text-gray-400 hover:text-red-600" title="Cancel All" onclick="return confirm('Cancel all orders?')">
                                 <i class="fas fa-trash"></i>
                             </a>
                         </div>
-                        <table class="w-full border-collapse text-[13px]">
-                            <thead>
-                            <tr>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">ID</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Type</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Price</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Amount</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Side</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-3 py-2">Cancel</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <% orders.forEach(function(order) { %>
-                                <tr class="hover:bg-gray-100">
-                                    <td class="border border-gray-200 px-3 py-2 font-mono text-xs"><%= order.id.substring(0, 10) %>...</td>
-                                    <td class="border border-gray-200 px-3 py-2"><%= order.type %></td>
-                                    <td class="border border-gray-200 px-3 py-2"><%= priceFormat(order.price) %></td>
-                                    <td class="border border-gray-200 px-3 py-2"><%= order.amount %> (<%= order.filled %> filled)</td>
-                                    <td class="border border-gray-200 px-3 py-2">
-                                        <% if (order.side === 'buy') { %>
-                                            <i class="fas fa-chevron-circle-up text-green-600"></i>
-                                        <% } else if (order.side === 'sell') { %>
-                                            <i class="fas fa-chevron-circle-down text-red-600"></i>
-                                        <% } %>
-                                    </td>
-                                    <td class="border border-gray-200 px-3 py-2">
-                                        <a href="/orders/<%= profile.id %>/<%= encodeURIComponent(pair) %>/cancel/<%= encodeURIComponent(order.id) %>" class="text-gray-400 hover:text-red-600" title="Cancel">
-                                            <i class="fas fa-window-close"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                            </tbody>
-                        </table>
                     </div>
-                <% } else if (!error) { %>
-                    <div class="bg-white border border-gray-200 rounded mb-4 p-4 text-gray-500 text-center">
-                        No open orders for this pair
+                    <div id="orders-content">
+                        <div class="p-4 text-gray-500 text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Loading orders...
+                        </div>
                     </div>
-                <% } %>
+                </div>
 
                 <!-- TradingView Chart -->
                 <div class="bg-white border border-gray-200 rounded">

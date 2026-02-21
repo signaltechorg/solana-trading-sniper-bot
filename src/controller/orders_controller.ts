@@ -1,7 +1,7 @@
 import { BaseController, TemplateHelpers } from './base_controller';
 import { ProfileService } from '../profile/profile_service';
-import { ProfilePairService, ProfilePair } from '../modules/profile_pair_service';
-import { OrderInfo, OrderParams } from '../profile/types';
+import { ProfilePairService } from '../modules/profile_pair_service';
+import { OrderParams } from '../profile/types';
 import express from 'express';
 
 export class OrdersController extends BaseController {
@@ -46,18 +46,19 @@ export class OrdersController extends BaseController {
       const { pairs: allPairs, errors: pairErrors } = await this.pairService.getAllPairs(profiles);
 
       let ticker;
-      let orders: OrderInfo[] = [];
       let error: string | null = null;
 
       try {
         ticker = await this.profileService.fetchTicker(profileId, pair);
-        orders = await this.profileService.fetchOpenOrders(profileId, pair);
 
         // Update recent pairs
         this.profileService.updateRecentOrderPair(profileId, pair);
       } catch (e) {
         error = String(e);
       }
+
+      // Extract asset and currency from pair (e.g., "BTC/USDT:USDT" -> asset: "BTC", currency: "USDT")
+      const { asset, currency } = this.parsePair(pair);
 
       res.render('orders/orders', {
         activePage: 'orders',
@@ -68,14 +69,32 @@ export class OrdersController extends BaseController {
         allPairs,
         pairErrors,
         ticker,
-        orders,
         tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
         form: {
           price: ticker ? ticker.bid : undefined,
           type: 'limit'
         },
+        asset,
+        currency,
         error
       });
+    });
+
+    // API: Fetch open orders for a Profile:pair (lazy loading)
+    router.get('/api/orders/:profileId/:pair', async (req: any, res: any) => {
+      const { profileId, pair } = req.params;
+      const profile = this.profileService.getProfile(profileId);
+
+      if (!profile) {
+        return res.status(404).json({ error: `Profile ${profileId} not found` });
+      }
+
+      try {
+        const orders = await this.profileService.fetchOpenOrders(profileId, pair);
+        res.json({ orders });
+      } catch (e) {
+        res.status(500).json({ error: String(e) });
+      }
     });
 
     // Create order for a Profile:pair
@@ -96,14 +115,15 @@ export class OrdersController extends BaseController {
 
       const form = req.body;
       let ticker;
-      let orders: OrderInfo[] = [];
       let success = true;
       let message: string;
       let error: string | null = null;
 
+      // Extract asset and currency from pair
+      const { asset, currency } = this.parsePair(pair);
+
       try {
         ticker = await this.profileService.fetchTicker(profileId, pair);
-        orders = await this.profileService.fetchOpenOrders(profileId, pair);
       } catch (e) {
         error = String(e);
       }
@@ -120,9 +140,6 @@ export class OrdersController extends BaseController {
 
         const result = await this.profileService.placeOrder(profileId, orderParams);
         message = `Order placed successfully. ID: ${result.id}`;
-
-        // Refresh orders after placing
-        orders = await this.profileService.fetchOpenOrders(profileId, pair);
       } catch (e) {
         success = false;
         message = String(e);
@@ -137,9 +154,10 @@ export class OrdersController extends BaseController {
         allPairs,
         pairErrors,
         ticker,
-        orders,
         tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
         form,
+        asset,
+        currency,
         error,
         alert: {
           title: success ? 'Order Placed' : 'Order Error',
@@ -174,6 +192,19 @@ export class OrdersController extends BaseController {
 
       res.redirect(`/orders/${profileId}/${encodeURIComponent(pair)}`);
     });
+  }
+
+  /**
+   * Parse pair into asset and currency (e.g., "BTC/USDT:USDT" -> { asset: "BTC", currency: "USDT" })
+   */
+  private parsePair(pair: string): { asset: string; currency: string } {
+    // Handle formats like "BTC/USDT" or "BTC/USDT:USDT"
+    const basePair = pair.split(':')[0]; // Remove settlement currency if present
+    const parts = basePair.split('/');
+    return {
+      asset: parts[0] || '',
+      currency: parts[1] || ''
+    };
   }
 
   /**
