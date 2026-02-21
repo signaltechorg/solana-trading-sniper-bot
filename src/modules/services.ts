@@ -42,6 +42,7 @@ import { PairConfig } from './pairs/pair_config';
 import { SystemUtil } from './system/system_util';
 import { DeskService } from './system/desk_service';
 import { SymbolSearchService } from './system/symbol_search_service';
+import { ProfileService } from './profile/profile_service';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import WinstonTelegramLogger from 'winston-telegram';
@@ -83,6 +84,7 @@ import { LogsController } from '../controller';
 import { DesksController } from '../controller';
 import { TradingViewController } from '../controller';
 import { CcxtExchangesController } from '../controller';
+import { ProfileController } from '../controller';
 
 // Commands
 import { BacktestCommand } from '../command/backtest';
@@ -144,6 +146,7 @@ export { LogsRepository, TickerLogRepository } from '../repository';
 export { ExchangePositionWatcher } from './exchange/exchange_position_watcher';
 export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
+export { ProfileService } from './profile/profile_service';
 export { StrategyManager } from './strategy/strategy_manager';
 export { SignalLogger } from './signal/signal_logger';
 export { OrderExecutor } from './order/order_executor';
@@ -207,6 +210,7 @@ let symbolSearchService: SymbolSearchService;
 let v2StrategyRegistry: StrategyRegistry;
 let strategyExecutor: StrategyExecutor;
 let backtestCommand: BacktestCommand;
+let profileService: ProfileService;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -277,6 +281,8 @@ export interface Services {
   getDesksController(templateHelpers: any): DesksController;
   getTradingViewController(templateHelpers: any): TradingViewController;
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
+  getProfileController(templateHelpers: any): ProfileController;
+  getProfileService(): ProfileService;
   getDeskService(): DeskService;
   getSymbolSearchService(): SymbolSearchService;
   getV2StrategyRegistry(): StrategyRegistry;
@@ -879,6 +885,18 @@ const services: Services = {
 
   getCcxtExchangesController: function (templateHelpers: any): CcxtExchangesController {
     return new CcxtExchangesController(templateHelpers);
+  },
+
+  getProfileController: function (templateHelpers: any): ProfileController {
+    return new ProfileController(templateHelpers, this.getProfileService());
+  },
+
+  getProfileService: function (): ProfileService {
+    if (profileService) {
+      return profileService;
+    }
+
+    return (profileService = new ProfileService());
   },
 
   getDeskService: function (): DeskService {

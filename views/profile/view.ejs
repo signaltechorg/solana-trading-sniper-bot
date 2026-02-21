@@ -1,0 +1,214 @@
+<!-- Content -->
+<div class="p-4">
+    <div class="max-w-[1000px] mx-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-semibold"><%= profile.name %></h1>
+            <nav class="text-sm text-gray-500">
+                <a href="/profiles" class="text-blue-600 hover:underline">Profiles</a> / <%= profile.name %>
+            </nav>
+        </div>
+
+        <!-- Profile Info -->
+        <div class="bg-white border border-gray-200 rounded mb-4">
+            <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <span class="font-medium">Profile Info</span>
+                <div class="flex items-center gap-2">
+                    <form action="/profiles/<%= profile.id %>/delete" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this profile?')">
+                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm cursor-pointer">
+                            <i class="fas fa-trash mr-1"></i> Delete
+                        </button>
+                    </form>
+                    <a href="/profiles/<%= profile.id %>/edit" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </a>
+                </div>
+            </div>
+            <div class="p-4 grid grid-cols-3 gap-4 text-sm">
+                <div>
+                    <div class="text-gray-400 text-xs mb-1">Exchange</div>
+                    <div><span class="px-2 py-1 bg-gray-100 rounded"><%= profile.exchange %></span></div>
+                </div>
+                <div>
+                    <div class="text-gray-400 text-xs mb-1">API Key</div>
+                    <div class="font-mono"><%= profile.apiKey ? profile.apiKey.substring(0, 8) + '...' : 'Not set' %></div>
+                </div>
+                <div>
+                    <div class="text-gray-400 text-xs mb-1">Secret</div>
+                    <div><% if (profile.secret) { %><i class="fas fa-lock text-green-600"></i> Set<% } else { %><span class="text-gray-400">Not set</span><% } %></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="border-b border-gray-200 mb-4">
+            <nav class="flex gap-4" id="profile-tabs">
+                <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600" data-tab="overview">
+                    Overview
+                </button>
+                <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="balances">
+                    Balances
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content: Overview -->
+        <div id="tab-overview" class="tab-content">
+            <div class="bg-white border border-gray-200 rounded p-6">
+                <div class="text-center text-gray-400">
+                    <i class="fas fa-chart-line text-4xl mb-3"></i>
+                    <p>Overview content will be added here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Balances -->
+        <div id="tab-balances" class="tab-content hidden">
+            <div class="bg-white border border-gray-200 rounded">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <span class="font-medium">Balances</span>
+                    <button type="button" id="refresh-balances" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                    </button>
+                </div>
+
+                <div id="balances-content">
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Loading balances...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const profileId = '<%= profile.id %>';
+const hasCredentials = <%= profile.apiKey && profile.secret ? 'true' : 'false' %>;
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const tabId = this.dataset.tab;
+
+        // Update tab button styles
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('border-blue-600', 'text-blue-600');
+            b.classList.add('border-transparent', 'text-gray-500');
+        });
+        this.classList.remove('border-transparent', 'text-gray-500');
+        this.classList.add('border-blue-600', 'text-blue-600');
+
+        // Show/hide tab content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+        // Load balances when tab is first shown
+        if (tabId === 'balances' && !window.balancesLoaded) {
+            loadBalances();
+        }
+    });
+});
+
+function formatBalance(num) {
+    if (num === null || num === undefined) return '-';
+    if (num === 0) return '0';
+    if (num < 0.0001 && num > 0) return num.toExponential(2);
+    if (num < 1) return num.toFixed(6);
+    if (num < 1000) return num.toFixed(4);
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function loadBalances() {
+    const contentEl = document.getElementById('balances-content');
+
+    if (!hasCredentials) {
+        contentEl.innerHTML = `
+            <div class="p-4">
+                <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch balances.
+                    <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    contentEl.innerHTML = `
+        <div class="p-8 text-center text-gray-400">
+            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+            <p>Loading balances...</p>
+        </div>
+    `;
+
+    fetch('/api/profiles/' + profileId + '/balances')
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                contentEl.innerHTML = `
+                    <div class="p-4">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const balances = data.balances || [];
+
+            if (balances.length === 0) {
+                contentEl.innerHTML = `
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fas fa-wallet text-4xl mb-3"></i>
+                        <p>No non-zero balances found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="text-left py-3 px-4 font-medium text-gray-600">Currency</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-600">Total</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-600">Free</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-600">Used</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+            `;
+
+            balances.forEach(function(b) {
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4 font-mono font-medium">${b.currency}</td>
+                        <td class="py-3 px-4 text-right">${formatBalance(b.total)}</td>
+                        <td class="py-3 px-4 text-right text-gray-500">${formatBalance(b.free)}</td>
+                        <td class="py-3 px-4 text-right text-gray-500">${formatBalance(b.used)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            contentEl.innerHTML = html;
+            window.balancesLoaded = true;
+        })
+        .catch(err => {
+            contentEl.innerHTML = `
+                <div class="p-4">
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load balances: ${err.message}
+                    </div>
+                </div>
+            `;
+        });
+}
+
+// Refresh button
+document.getElementById('refresh-balances').addEventListener('click', function() {
+    window.balancesLoaded = false;
+    loadBalances();
+});
+</script>
