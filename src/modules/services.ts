@@ -29,7 +29,6 @@ import { ExchangeManager } from './exchange/exchange_manager';
 import { Trade } from './trade';
 import { Http } from './http';
 import { Backtest } from './backtest';
-import { Backfill } from './backfill';
 
 import { StopLossCalculator } from './order/stop_loss_calculator';
 import { RiskRewardRatioCalculator } from './order/risk_reward_ratio_calculator';
@@ -276,7 +275,6 @@ export interface Services {
     Bitmex | BitmexTestnet | Binance | BinanceMargin | BinanceFutures | BinanceFuturesCoin | CoinbasePro | Bitfinex | Bybit | BybitUnified | Noop
   >;
   createTradeInstance(): Trade;
-  getBackfill(): Backfill;
   createMailer(): any;
   createTelegram(): any;
   getInstances(): Instances;
@@ -804,10 +802,6 @@ const services: Services = {
       this.getExchangePositionWatcher(),
       this.getPairStateManager()
     );
-  },
-
-  getBackfill: function (): Backfill {
-    return new Backfill(this.getExchanges(), this.getCandleImporter());
   },
 
   createMailer: function (): any {
