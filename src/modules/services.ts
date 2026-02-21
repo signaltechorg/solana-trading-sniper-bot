@@ -43,6 +43,7 @@ import { SystemUtil } from './system/system_util';
 import { DeskService } from './system/desk_service';
 import { SymbolSearchService } from './system/symbol_search_service';
 import { ProfileService } from '../profile/profile_service';
+import { ProfilePairService } from './profile_pair_service';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import WinstonTelegramLogger from 'winston-telegram';
@@ -52,6 +53,7 @@ import { CandlestickResample } from './system/candlestick_resample';
 import { RequestClient } from '../utils/request_client';
 import { Throttler } from '../utils/throttler';
 import { QueueManager } from '../utils/queue';
+import { FileCache } from '../utils/file_cache';
 
 import { Bitmex } from '../exchange/bitmex';
 import { BitmexTestnet } from '../exchange/bitmex_testnet';
@@ -143,12 +145,14 @@ export { ExchangePositionWatcher } from './exchange/exchange_position_watcher';
 export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
 export { ProfileService } from '../profile/profile_service';
+export { ProfilePairService } from './profile_pair_service';
 export { StrategyManager } from './strategy/strategy_manager';
 export { SignalLogger } from './signal/signal_logger';
 export { OrderExecutor } from './order/order_executor';
 export { OrderCalculator } from './order/order_calculator';
 export { Backtest } from './backtest';
 export { PairConfig } from './pairs/pair_config';
+export { FileCache } from '../utils/file_cache';
 
 let db: Sqlite.Database | undefined;
 let instances: Instances;
@@ -206,6 +210,8 @@ let v2StrategyRegistry: StrategyRegistry;
 let strategyExecutor: StrategyExecutor;
 let backtestCommand: BacktestCommand;
 let profileService: ProfileService;
+let profilePairService: ProfilePairService;
+let fileCache: FileCache;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -275,11 +281,13 @@ export interface Services {
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getProfileController(templateHelpers: any): ProfileController;
   getProfileService(): ProfileService;
+  getProfilePairService(): ProfilePairService;
   getDeskService(): DeskService;
   getSymbolSearchService(): SymbolSearchService;
   getV2StrategyRegistry(): StrategyRegistry;
   getStrategyExecutor(): StrategyExecutor;
   getBacktestCommand(): BacktestCommand;
+  getFileCache(): FileCache;
 }
 
 const services: Services = {
@@ -832,7 +840,7 @@ const services: Services = {
   },
 
   getOrdersController: function (templateHelpers: any): OrdersController {
-    return new OrdersController(templateHelpers, this.getProfileService());
+    return new OrdersController(templateHelpers, this.getProfileService(), this.getProfilePairService());
   },
 
   getSignalsController: function (templateHelpers: any): SignalsController {
@@ -873,6 +881,14 @@ const services: Services = {
     }
 
     return (profileService = new ProfileService());
+  },
+
+  getProfilePairService: function (): ProfilePairService {
+    if (profilePairService) {
+      return profilePairService;
+    }
+
+    return (profilePairService = new ProfilePairService(this.getFileCache()));
   },
 
   getDeskService: function (): DeskService {
@@ -924,6 +940,14 @@ const services: Services = {
       this.getExchangeCandleCombine(),
       this.getStrategyExecutor()
     ));
+  },
+
+  getFileCache: function (): FileCache {
+    if (fileCache) {
+      return fileCache;
+    }
+
+    return (fileCache = new FileCache());
   }
 };
 

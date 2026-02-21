@@ -5,14 +5,12 @@ import { OrderParams } from '../profile/types';
 import express from 'express';
 
 export class OrdersController extends BaseController {
-  private pairService: ProfilePairService;
-
   constructor(
     templateHelpers: TemplateHelpers,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    private pairService: ProfilePairService
   ) {
     super(templateHelpers);
-    this.pairService = new ProfilePairService();
   }
 
   registerRoutes(router: express.Router): void {

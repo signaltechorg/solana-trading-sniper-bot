@@ -3,16 +3,22 @@ import { MarketData, OrderParams, OrderResult, OrderInfo, OrderSide } from './ty
 
 /**
  * Fetches current bid/ask prices for a trading pair
+ * Uses order book for bid/ask (works across spot, futures, margin)
  */
 export async function fetchMarketData(exchange: ccxt.Exchange, pair: string): Promise<MarketData> {
-  const ticker = await exchange.fetchTicker(pair);
+  // Fetch both in parallel - order book for bid/ask, ticker for last price
+  // Note: some exchanges (e.g., binanceusdm) don't accept depth limit of 1
+  const [orderBook, ticker] = await Promise.all([
+    exchange.fetchOrderBook(pair),
+    exchange.fetchTicker(pair)
+  ]);
 
-  const bid = ticker.bid;
-  const ask = ticker.ask;
+  const bid = orderBook.bids[0]?.[0];
+  const ask = orderBook.asks[0]?.[0];
   const last = ticker.last;
 
   if (!bid || !ask) {
-    throw new Error('Could not fetch bid/ask prices for this pair');
+    throw new Error('Could not fetch bid/ask prices from order book');
   }
 
   return { bid, ask, last };

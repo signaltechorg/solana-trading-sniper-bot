@@ -41,9 +41,7 @@
                                     data-search="<%= item.profileName.toLowerCase() %> <%= item.pair.toLowerCase() %>"
                                     onclick="window.location.href='/orders/<%= item.profileId %>/<%= encodeURIComponent(item.pair) %>'">
                                     <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                                        <span class="font-medium"><%= item.profileName %></span>
-                                        <span class="text-gray-400 mx-1">:</span>
-                                        <span class="text-blue-600"><%= item.pair %></span>
+                                        <span class="text-gray-500"><%= item.profileName %>:</span><%= item.pair %>
                                     </td>
                                     <td class="border border-gray-200 px-3 py-2 text-center">
                                         <%- getTypeBadge(item.type) %>

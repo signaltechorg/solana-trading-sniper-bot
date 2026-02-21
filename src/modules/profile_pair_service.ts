@@ -1,6 +1,6 @@
-const NodeCache = require('node-cache');
 import * as ccxt from 'ccxt';
 import { Profile } from '../profile/types';
+import { FileCache } from './services';
 
 export interface ProfilePair {
   profileId: string;
@@ -20,37 +20,27 @@ interface CoinGeckoCoin {
   market_cap_rank: number;
 }
 
+const MARKET_TTL = 300; // 5 minutes
+const COINGECKO_TTL = 21600; // 6 hours
+
 export class ProfilePairService {
-  private marketCache: any;
-  private coinGeckoCache: any;
+  private cache: FileCache;
 
-  constructor() {
-    // Cache markets per exchange for 5 minutes
-    this.marketCache = new NodeCache({
-      stdTTL: 300,
-      checkperiod: 60,
-      useClones: false
-    });
-
-    // Cache CoinGecko data for 6 hours (21600 seconds)
-    this.coinGeckoCache = new NodeCache({
-      stdTTL: 21600,
-      checkperiod: 3600,
-      useClones: false
-    });
+  constructor(cache: FileCache) {
+    this.cache = cache;
   }
 
   /**
    * Fetch top coins from CoinGecko (cached for 6 hours)
    */
-  private async fetchCoinGeckoRankings(): Promise<Map<string, number>> {
-    const cacheKey = 'coingecko_rankings';
-    const cached = this.coinGeckoCache.get(cacheKey) as Map<string, number> | undefined;
+  private async fetchCoinGeckoRankings(): Promise<Record<string, number>> {
+    const cacheKey = 'coingecko:rankings';
+    const cached = this.cache.get(cacheKey) as Record<string, number> | undefined;
     if (cached) {
       return cached;
     }
 
-    const rankings = new Map<string, number>();
+    const rankings: Record<string, number> = {};
 
     try {
       const response = await fetch(
@@ -64,16 +54,15 @@ export class ProfilePairService {
       const coins: CoinGeckoCoin[] = await response.json();
 
       for (const coin of coins) {
-        // Store symbol -> rank (lower is better)
-        rankings.set(coin.symbol.toUpperCase(), coin.market_cap_rank);
+        rankings[coin.symbol.toUpperCase()] = coin.market_cap_rank;
       }
 
-      console.log(`[ProfilePairService] Loaded ${rankings.size} coin rankings from CoinGecko`);
+      console.log(`[ProfilePairService] Loaded ${Object.keys(rankings).length} coin rankings from CoinGecko`);
     } catch (e) {
       console.error('[ProfilePairService] Failed to fetch CoinGecko rankings:', e);
     }
 
-    this.coinGeckoCache.set(cacheKey, rankings);
+    this.cache.set(cacheKey, rankings, COINGECKO_TTL);
     return rankings;
   }
 
@@ -110,8 +99,8 @@ export class ProfilePairService {
 
     // Sort by CoinGecko market cap rank (asc), then by pair name (asc)
     allPairs.sort((a, b) => {
-      const rankA = rankings.get(a.pair.split(':')[0].split('/')[0].toUpperCase()) || 9999;
-      const rankB = rankings.get(b.pair.split(':')[0].split('/')[0].toUpperCase()) || 9999;
+      const rankA = rankings[a.pair.split(':')[0].split('/')[0].toUpperCase()] || 9999;
+      const rankB = rankings[b.pair.split(':')[0].split('/')[0].toUpperCase()] || 9999;
 
       if (rankA !== rankB) {
         return rankA - rankB; // Lower rank (more popular) first
@@ -130,8 +119,8 @@ export class ProfilePairService {
    * Get markets for an exchange with caching (public data, no auth needed)
    */
   private async getMarketsForExchange(exchangeName: string): Promise<any[]> {
-    // Check cache
-    const cached = this.marketCache.get(exchangeName) as any[] | undefined;
+    const cacheKey = `market:${exchangeName}`;
+    const cached = this.cache.get(cacheKey) as any[] | undefined;
     if (cached) {
       return cached;
     }
@@ -149,9 +138,7 @@ export class ProfilePairService {
     await exchange.loadMarkets();
     const markets = Object.values(exchange.markets) as any[];
 
-    // Store in cache
-    this.marketCache.set(exchangeName, markets);
-
+    this.cache.set(cacheKey, markets, MARKET_TTL);
     return markets;
   }
 
@@ -164,19 +151,5 @@ export class ProfilePairService {
     if (market.swap) return 'swap';
     if (market.margin) return 'margin';
     return 'spot';
-  }
-
-  /**
-   * Clear cache for a specific exchange or all
-   */
-  clearCache(exchangeName?: string): void {
-    if (exchangeName) {
-      // Clear all keys starting with this exchange
-      const keys = this.marketCache.keys().filter(k => k.startsWith(exchangeName));
-      this.marketCache.del(keys);
-    } else {
-      this.marketCache.flushAll();
-      this.coinGeckoCache.flushAll();
-    }
   }
 }
