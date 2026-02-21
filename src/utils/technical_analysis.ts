@@ -137,8 +137,12 @@ export async function createIndicatorsLookback(lookbacks: Candlestick[], indicat
   }
 
   let calculations: any = { candles: lookbacks.slice(-1000) };
-  for (let depth = 0; depth < 5; depth += 1) {
+
+  // Run multiple passes for indicator dependencies (e.g., indicator B uses indicator A's output)
+  // Most indicators use candle data directly, but some may need previously calculated results
+  for (let i = 0; i < 5; i++) {
     const values = await Promise.all(calculateReadyIndicators(indicators, calculations));
+    if (values.length === 0) break; // No more indicators to calculate
     calculations = Object.assign(calculations, ...values);
   }
 

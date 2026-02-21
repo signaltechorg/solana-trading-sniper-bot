@@ -1,9 +1,9 @@
 import moment from 'moment';
-import { StrategyContext } from '../dict/strategy_context';
 import { Notify } from '../notify/notify';
-import { Logger, StrategyManager } from '../modules/services';
+import { Logger } from '../modules/services';
 import { SignalLogger } from '../modules/signal/signal_logger';
 import { ProfileService } from '../profile/profile_service';
+import { StrategyExecutor } from './strategy_executor';
 import type { Bot, Profile } from '../profile/types';
 
 /** Convert a period string (e.g. "15m", "4h", "1d") to whole minutes. */
@@ -36,7 +36,7 @@ export class BotRunner {
 
   constructor(
     private readonly profileService: ProfileService,
-    private readonly strategyManager: StrategyManager,
+    private readonly strategyExecutor: StrategyExecutor,
     private readonly notifier: Notify,
     private readonly signalLogger: SignalLogger,
     private readonly logger: Logger
@@ -106,16 +106,19 @@ export class BotRunner {
     const marketData = await this.profileService.fetchTicker(profile.id, bot.pair);
 
     const isWatchOnly = bot.mode === 'watch';
-    const context = StrategyContext.create(bot.options ?? {}, marketData, isWatchOnly);
 
-    const result = await this.strategyManager.executeStrategy(bot.strategy, context, profile.exchange, bot.pair, bot.options ?? {});
+    // Execute strategy
+    const signal = await this.strategyExecutor.executeStrategy(
+      bot.strategy,
+      profile.exchange,
+      bot.pair,
+      bot.interval,
+      bot.options ?? {}
+    );
 
-    if (!result) return;
+    if (!signal) return;
 
-    const signal = result.getSignal();
-    if (!signal || !['long', 'short', 'close'].includes(signal)) return;
-
-    this.signalLogger.signal(profile.exchange, bot.pair, { price: marketData.ask, strategy: bot.strategy, raw: JSON.stringify(result) }, signal, bot.strategy);
+    this.signalLogger.signal(profile.exchange, bot.pair, { price: marketData.ask, strategy: bot.strategy }, signal, bot.strategy);
 
     this.notifier.send(`[${signal} (${bot.strategy})] ${profile.exchange}:${bot.pair} @ ${marketData.ask}`);
 

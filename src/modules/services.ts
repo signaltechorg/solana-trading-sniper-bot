@@ -17,7 +17,7 @@ import { SignalLogger } from './signal/signal_logger';
 import { SignalHttp } from './signal/signal_http';
 
 import { SignalRepository, CandlestickRepository } from '../repository';
-import { StrategyManager } from './strategy/strategy_manager';
+import { StrategyExecutor } from '../strategy/strategy_executor';
 
 import { Trade } from './trade';
 import { Http } from './http';
@@ -115,7 +115,7 @@ export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
 export { ProfileService } from '../profile/profile_service';
 export { ProfilePairService } from './profile_pair_service';
-export { StrategyManager } from './strategy/strategy_manager';
+export { StrategyExecutor } from '../strategy/strategy_executor';
 export { SignalLogger } from './signal/signal_logger';
 export { PairConfig } from './pairs/pair_config';
 export { FileCache } from '../utils/file_cache';
@@ -139,7 +139,7 @@ let signalHttp: SignalHttp;
 let signalRepository: SignalRepository;
 let candlestickRepository: CandlestickRepository;
 
-let strategyManager: StrategyManager;
+let strategyExecutor: StrategyExecutor;
 
 let systemUtil: SystemUtil;
 let technicalAnalysisValidator: TechnicalAnalysisValidator;
@@ -179,7 +179,7 @@ export interface Services {
   getLogger(): Logger;
   getNotifier(): Notify;
   getTickers(): Tickers;
-  getStrategyManager(): StrategyManager;
+  getStrategyExecutor(): StrategyExecutor;
   createWebserverInstance(): Http;
   getPairConfig(): PairConfig;
   getSystemUtil(): SystemUtil;
@@ -381,16 +381,15 @@ const services: Services = {
     return (tickers = new Tickers());
   },
 
-  getStrategyManager: function (): StrategyManager {
-    if (strategyManager) {
-      return strategyManager;
+  getStrategyExecutor: function (): StrategyExecutor {
+    if (strategyExecutor) {
+      return strategyExecutor;
     }
 
-    return (strategyManager = new StrategyManager(
+    return (strategyExecutor = new StrategyExecutor(
       this.getTechnicalAnalysisValidator(),
       this.getExchangeCandleCombine(),
-      this.getLogger(),
-      parameters.projectDir
+      this.getLogger()
     ));
   },
 
@@ -666,7 +665,7 @@ const services: Services = {
 
     return (botRunner = new BotRunner(
       this.getProfileService(),
-      this.getStrategyManager(),
+      this.getStrategyExecutor(),
       this.getNotifier(),
       this.getSignalLogger(),
       this.getLogger()
