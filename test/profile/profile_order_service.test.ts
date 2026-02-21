@@ -4,10 +4,34 @@ import * as ccxt from 'ccxt';
 import {
   placeLimitOrder,
   placeMarketOrder,
+  closePosition,
   roundAmountDown,
   roundToPrecision
 } from '../../src/profile/profile_order_service';
 import { OrderParams } from '../../src/profile/types';
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+/** Build a non-Bybit exchange mock with a given id */
+function mockExchange(id = 'binance') {
+  const m = mock<ccxt.Exchange>();
+  // Set id directly on the instance to avoid polluting the ts-mockito matcher stack
+  Object.defineProperty(instance(m), 'id', { value: id, configurable: true });
+  return m;
+}
+
+/** Build a Bybit exchange mock (id contains 'bybit') */
+function mockBybit() {
+  const m = mock<ccxt.Exchange>();
+  Object.defineProperty(instance(m), 'id', { value: 'bybit', configurable: true });
+  when(m.loadMarkets()).thenResolve({} as any);
+  return m;
+}
+
+/** Stub fetchPositions directly on the exchange instance (avoids ts-mockito matcher-stack skew) */
+function stubPositions(m: ccxt.Exchange, positions: any[]) {
+  (m as any).fetchPositions = async () => positions;
+}
 
 // ─── Market fixtures ─────────────────────────────────────────────────────────
 
@@ -290,5 +314,182 @@ describe('#placeMarketOrder', () => {
 
     assert.ok(result.id, 'spot order should succeed');
     verify(mockedExchange.createOrder(anything(), anything(), anything(), anything())).once();
+  });
+});
+
+// ─── closePosition ────────────────────────────────────────────────────────────
+
+const CLOSE_ORDER  = { id: 'close-123', status: 'open', type: 'market', side: 'sell', price: 0, amount: 0.5, filled: 0, remaining: 0.5 } as any;
+const ORDER_BOOK   = { bids: [[2700, 1]], asks: [[2702, 1]], timestamp: 0, datetime: '', nonce: 0 } as any;
+const EMPTY_BIDS   = { bids: [], asks: [[2702, 1]], timestamp: 0, datetime: '', nonce: 0 } as any;
+const EMPTY_ASKS   = { bids: [[2700, 1]], asks: [], timestamp: 0, datetime: '', nonce: 0 } as any;
+
+const LINEAR_MARKET  = { linear: true,  inverse: false, type: 'swap' } as any;
+const INVERSE_MARKET = { linear: false, inverse: true,  type: 'swap' } as any;
+
+const LONG_POSITION  = [{ symbol: 'ETH/USDT:USDT', side: 'long',  contracts:  0.5 }] as any;
+const SHORT_POSITION = [{ symbol: 'ETH/USDT:USDT', side: 'short', contracts: -0.5 }] as any;
+const BTC_SHORT      = [{ symbol: 'BTC/USD:BTC',   side: 'short', contracts:  1   }] as any;
+
+describe('#closePosition', () => {
+  // ── market close ──────────────────────────────────────────────────────────
+
+  it('market close – long – fetches position and places sell market order with reduceOnly', async () => {
+    const m = mockExchange();
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'market');
+
+    const [symbol, type, side, amount, price, params] = capture(m.createOrder).first();
+    assert.strictEqual(symbol, 'ETH/USDT:USDT');
+    assert.strictEqual(type, 'market');
+    assert.strictEqual(side, 'sell');
+    assert.strictEqual(amount, 0.5);
+    assert.strictEqual(price, undefined);
+    assert.deepStrictEqual(params, { reduceOnly: true });
+  });
+
+  it('market close – short – fetches position and places buy market order', async () => {
+    const m = mockExchange();
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, SHORT_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'market');
+
+    const [, , side, amount] = capture(m.createOrder).first();
+    assert.strictEqual(side, 'buy');
+    assert.strictEqual(amount, 0.5); // abs(-0.5)
+  });
+
+  it('market close – throws when no open position found for symbol', async () => {
+    const m = mockExchange();
+    const exchange = instance(m);
+    stubPositions(exchange, []);
+
+    await assert.rejects(
+      () => closePosition(exchange, 'ETH/USDT:USDT', 'market'),
+      /No open position found/
+    );
+    verify(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).never();
+  });
+
+  // ── limit close ──────────────────────────────────────────────────────────
+
+  it('limit close – long – places sell limit order at best bid', async () => {
+    const m = mockExchange();
+    when(m.fetchOrderBook('ETH/USDT:USDT')).thenResolve(ORDER_BOOK);
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'limit');
+
+    const [symbol, type, side, amount, price, params] = capture(m.createOrder).first();
+    assert.strictEqual(symbol, 'ETH/USDT:USDT');
+    assert.strictEqual(type, 'limit');
+    assert.strictEqual(side, 'sell');
+    assert.strictEqual(amount, 0.5);
+    assert.strictEqual(price, 2700);  // best bid
+    assert.deepStrictEqual(params, { reduceOnly: true });
+  });
+
+  it('limit close – short – places buy limit order at best ask', async () => {
+    const m = mockExchange();
+    when(m.fetchOrderBook('ETH/USDT:USDT')).thenResolve(ORDER_BOOK);
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, SHORT_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'limit');
+
+    const [, , side, , price] = capture(m.createOrder).first();
+    assert.strictEqual(side, 'buy');
+    assert.strictEqual(price, 2702);  // best ask
+  });
+
+  it('limit close – throws when order book has no bids (long close)', async () => {
+    const m = mockExchange();
+    when(m.fetchOrderBook('ETH/USDT:USDT')).thenResolve(EMPTY_BIDS);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await assert.rejects(
+      () => closePosition(exchange, 'ETH/USDT:USDT', 'limit'),
+      /Could not fetch limit price/
+    );
+    verify(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).never();
+  });
+
+  it('limit close – throws when order book has no asks (short close)', async () => {
+    const m = mockExchange();
+    when(m.fetchOrderBook('ETH/USDT:USDT')).thenResolve(EMPTY_ASKS);
+    const exchange = instance(m);
+    stubPositions(exchange, SHORT_POSITION);
+
+    await assert.rejects(
+      () => closePosition(exchange, 'ETH/USDT:USDT', 'limit'),
+      /Could not fetch limit price/
+    );
+    verify(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).never();
+  });
+
+  // ── Bybit category ────────────────────────────────────────────────────────
+
+  it('bybit market close – linear – fetches position with category=linear and places sell order', async () => {
+    const m = mockBybit();
+    when(m.market('ETH/USDT:USDT')).thenReturn(LINEAR_MARKET);
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'market');
+
+    const [, , , , , params] = capture(m.createOrder).first();
+    assert.deepStrictEqual(params, { reduceOnly: true, category: 'linear' });
+  });
+
+  it('bybit market close – inverse – fetches position with category=inverse and places buy order', async () => {
+    const m = mockBybit();
+    when(m.market('BTC/USD:BTC')).thenReturn(INVERSE_MARKET);
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, BTC_SHORT);
+
+    await closePosition(exchange, 'BTC/USD:BTC', 'market');
+
+    const [, , side, , , params] = capture(m.createOrder).first();
+    assert.strictEqual(side, 'buy');
+    assert.deepStrictEqual(params, { reduceOnly: true, category: 'inverse' });
+  });
+
+  it('bybit limit close – loads markets and passes category to both fetchPositions and createOrder', async () => {
+    const m = mockBybit();
+    when(m.market('ETH/USDT:USDT')).thenReturn(LINEAR_MARKET);
+    when(m.fetchOrderBook('ETH/USDT:USDT')).thenResolve(ORDER_BOOK);
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'limit');
+
+    verify(m.loadMarkets()).once();
+    const [, , , , , params] = capture(m.createOrder).first();
+    assert.deepStrictEqual(params, { reduceOnly: true, category: 'linear' });
+  });
+
+  it('non-bybit – no loadMarkets, no category, fetches positions with undefined params', async () => {
+    const m = mockExchange('binance');
+    when(m.createOrder(anything(), anything(), anything(), anything(), anything(), anything())).thenResolve(CLOSE_ORDER);
+    const exchange = instance(m);
+    stubPositions(exchange, LONG_POSITION);
+
+    await closePosition(exchange, 'ETH/USDT:USDT', 'market');
+
+    verify(m.loadMarkets()).never();
+    const [, , , , , params] = capture(m.createOrder).first();
+    assert.deepStrictEqual(params, { reduceOnly: true });
   });
 });

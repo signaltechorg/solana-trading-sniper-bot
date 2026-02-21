@@ -9,7 +9,9 @@ import {
   fetchOpenOrders as fetchOpenOrdersCCXT,
   fetchClosedOrders as fetchClosedOrdersCCXT,
   cancelOrder as cancelOrderCCXT,
-  cancelAllOrders as cancelAllOrdersCCXT
+  cancelAllOrders as cancelAllOrdersCCXT,
+  fetchOpenPositions as fetchOpenPositionsCCXT,
+  closePosition as closePositionCCXT
 } from './profile_order_service';
 
 export class ProfileService {
@@ -215,6 +217,22 @@ export class ProfileService {
   async cancelOrder(profileId: string, orderId: string, pair: string): Promise<any> {
     const exchange = this.getExchangeForProfile(profileId);
     return cancelOrderCCXT(exchange, orderId, pair);
+  }
+
+  /**
+   * Fetch open swap/futures positions for a profile
+   */
+  async fetchOpenPositions(profileId: string): Promise<import('./types').PositionInfo[]> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return fetchOpenPositionsCCXT(exchange);
+  }
+
+  /**
+   * Close a swap/futures position via limit or market order
+   */
+  async closePosition(profileId: string, symbol: string, type: 'limit' | 'market'): Promise<any> {
+    const exchange = this.getExchangeForProfile(profileId);
+    return closePositionCCXT(exchange, symbol, type);
   }
 
   /**

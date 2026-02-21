@@ -64,6 +64,22 @@ export interface OrderInfo {
   raw: any;
 }
 
+export interface PositionInfo {
+  symbol: string;
+  side: 'long' | 'short';
+  contracts: number;
+  contractSize?: number;
+  entryPrice?: number;
+  markPrice?: number;
+  unrealizedPnl?: number;
+  percentage?: number;
+  notional?: number;
+  leverage?: number;
+  liquidationPrice?: number;
+  marginMode?: string;
+  raw: any;
+}
+
 export interface RecentOrderPair {
   profileId: string;
   profileName: string;

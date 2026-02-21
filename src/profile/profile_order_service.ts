@@ -1,5 +1,5 @@
 import * as ccxt from 'ccxt';
-import { MarketData, OrderParams, OrderResult, OrderInfo, OrderSide } from './types';
+import { MarketData, OrderParams, OrderResult, OrderInfo, OrderSide, PositionInfo } from './types';
 
 /**
  * Fetches current bid/ask prices for a trading pair
@@ -240,6 +240,100 @@ export async function fetchClosedOrders(
     timestamp: order.timestamp ?? 0,
     raw: order
   }));
+}
+
+/**
+ * Fetches open swap/futures positions from the exchange.
+ * Returns only positions with non-zero contracts.
+ */
+export async function fetchOpenPositions(exchange: ccxt.Exchange): Promise<PositionInfo[]> {
+  let rawPositions: any[] = [];
+
+  if (!exchange.has['fetchPositions']) {
+    return [];
+  }
+
+  // Bybit requires category param to iterate swap/futures categories
+  if (exchange.id.toLowerCase().includes('bybit')) {
+    for (const category of ['linear', 'inverse']) {
+      try {
+        const categoryPositions = await exchange.fetchPositions(undefined, { category });
+        rawPositions = rawPositions.concat(categoryPositions);
+      } catch (e: any) {
+        console.log(`Bybit ${category} positions fetch failed: ${e.message}`);
+      }
+    }
+  } else {
+    try {
+      rawPositions = await exchange.fetchPositions();
+    } catch (e: any) {
+      console.log(`fetchPositions failed: ${e.message}`);
+      return [];
+    }
+  }
+
+  return rawPositions
+    .filter((p: any) => p.contracts && Math.abs(p.contracts) > 0)
+    .map((p: any) => ({
+      symbol: p.symbol,
+      side: p.side as 'long' | 'short',
+      contracts: p.contracts ?? 0,
+      contractSize: p.contractSize,
+      entryPrice: p.entryPrice,
+      markPrice: p.markPrice,
+      unrealizedPnl: p.unrealizedPnl,
+      percentage: p.percentage,
+      notional: p.notional,
+      leverage: p.leverage,
+      liquidationPrice: p.liquidationPrice,
+      marginMode: p.marginMode ?? p.marginType,
+      raw: p
+    }));
+}
+
+/**
+ * Closes an open swap/futures position via a limit or market order.
+ * Fetches the current position to determine side and size — caller only needs symbol and close type.
+ */
+export async function closePosition(
+  exchange: ccxt.Exchange,
+  symbol: string,
+  type: 'limit' | 'market'
+): Promise<any> {
+  const extraParams: Record<string, any> = { reduceOnly: true };
+
+  if (exchange.id.toLowerCase().includes('bybit')) {
+    await exchange.loadMarkets();
+    const market = exchange.market(symbol);
+    extraParams.category = market.linear ? 'linear' : 'inverse';
+  }
+
+  // Fetch the live position to get current side and size
+  const positions: any[] = await exchange.fetchPositions([symbol], extraParams.category ? { category: extraParams.category } : undefined);
+  const position = positions.find((p: any) => p.symbol === symbol && p.contracts && Math.abs(p.contracts) > 0);
+
+  if (!position) {
+    throw new Error(`No open position found for ${symbol}`);
+  }
+
+  const closeSide = position.side === 'long' ? 'sell' : 'buy';
+  const contracts = Math.abs(position.contracts);
+
+  if (type === 'market') {
+    return exchange.createOrder(symbol, 'market', closeSide, contracts, undefined, extraParams);
+  }
+
+  // Limit close: use best available price from order book
+  const orderBook = await exchange.fetchOrderBook(symbol);
+  const limitPrice: number = closeSide === 'sell'
+    ? orderBook.bids[0]?.[0]  // closing long — sell at best bid
+    : orderBook.asks[0]?.[0]; // closing short — buy at best ask
+
+  if (!limitPrice) {
+    throw new Error(`Could not fetch limit price for ${symbol}`);
+  }
+
+  return exchange.createOrder(symbol, 'limit', closeSide, contracts, limitPrice, extraParams);
 }
 
 /**
