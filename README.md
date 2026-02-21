@@ -2,72 +2,45 @@
 
 [![Build Status](https://github.com/Haehnchen/crypto-trading-bot/actions/workflows/node.js.yml/badge.svg)](https://github.com/Haehnchen/crypto-trading-bot/actions/workflows/node.js.yml)
 
-A **work in progress** Cryptocurrency for common exchanges like Bitfinex, Bitmex and Binance.
-As most trading bots just provide basic buy and sell signals they provide many stuff to get profitable eg exchange orders like stop-losses or stop-limits are not supported by main bots. Also the limitation of fixed timeframe and technical indicators must be broken
+A cryptocurrency trading bot supporting multiple exchanges via [CCXT](https://github.com/ccxt/ccxt).
 
 **Not production ready** only basic functionality
 
 ## Features
 
-- Fully use Websocket for exchange communication to react as fast as possible on market
 - Multi pair support in one instance
 - sqlite3 storage for candles, tickers, ...
-- Webserver UI
+- Webserver UI with dashboard
 - Support for going "Short" and "Long"
 - Signal browser dashboard for pairs
-- Slack and email notification
-- Join foreign exchange candles (eg. Trade on Bitmex with the faster moving Binance trades / candles)
-
-### Exchanges
-
-- [Bitmex](https://www.bitmex.com/register/jS4mLN) with leverage configuration
-- [Bitmex Testnet](https://www.bitmex.com/register/jS4mLN)
-- [Binance](https://www.binance.com/?ref=17569916)
-- [Binance Margin](https://www.binance.com/?ref=17569916)
-- [Binance Futures](https://www.binance.com/en/futures/ref/302644)
-- [Coinbase Pro](https://www.coinbase.com/join/5a2ae60e76531100d3af2ee5)
-- [Bitfinex](https://www.bitfinex.com/?refcode=kDLceRHa) (margin wallet)
-- [Bybit](https://www.bybit.com/app/register?ref=46AK7)
-  - [USDT Perpetual Futures (v2) APIs](https://bybit-exchange.github.io/docs/futuresV2/linear/#t-introduction)
-  - [Inverse Perpetual Futures (v2) APIs](https://bybit-exchange.github.io/docs/futuresV2/inverse/#t-introduction) 
-  
-TODOS:
-
-- [Huobi Global](https://www.hbg.com/) (margin)
+- Slack, Telegram and email notification
+- Profile-based bot management with strategy execution
+- CCXT-based exchange support (100+ exchanges)
 
 ## Technical stuff and packages
 
 - node.js
 - sqlite3
 - [technicalindicators](https://github.com/anandanand84/technicalindicators)
-- [tulipindicators - tulind](https://tulipindicators.org/list)
 - [TA-Lib](https://mrjbq7.github.io/ta-lib/)
-- twig
-- express
-- Bootstrap v4
+- [CCXT](https://github.com/ccxt/ccxt)
+- Tailwind CSS 4
 - Tradingview widgets
 
 ## How to use
 
 ### [optional] Preinstall
 
-The tulip library is used for indicators; which sometimes is having some issues on `npm install` because of code compiling:
-
-Install build tools
+For building sqlite and indicators libraries (if needed)
 
 ```
 sudo apt-get install build-essential
 ```
 
-The nodejs wrapper for tulipindicators is called [Tulip Node (tuind)](https://www.npmjs.com/package/tulind), check out installation instructions there.
-
-Also the build from source is not supporting all nodejs version. It looks like versions <= 10 are working. You can use nodejs 12 if you compiled it once via older version.
-
 ### Install packages
 
 ```
 ➜ npm install --production
-➜ npm run postinstall
 ```
 
 Create instance file for pairs and changes
@@ -92,12 +65,6 @@ Lets start it
 
 ```
 npm start
-```
-
-# examples
-
-```
-npm run -- backtest --strategy=dca_dipper --pair=bybit_unified.BTC/USDT:USDT
 ```
 
 ## How to use: Docker
@@ -151,8 +118,7 @@ Some browser links
 - UI: http://127.0.0.1:8080
 - Signals: http://127.0.0.1:8080/signals
 - Tradingview: http://127.0.0.1:8080/tradingview/BTCUSD
-- Backtesting: http://127.0.0.1:8080/backtest
-- Order & Pair Management: http://127.0.0.1:8080/pairs
+- Profiles: http://127.0.0.1:8080/profiles
 
 ### Security / Authentication
 
@@ -194,12 +160,6 @@ webserver.ip: 127.0.0.1
 
 ![Webserver UI](documentation/trades.png 'Trades / Positions / Orders')
 
-### Backtesting
-
-Currently there is a the UI for backtesting
-
-![Webserver UI](documentation/backtest_result.png 'Backtest Result')
-
 ### Manual Orders
 
 ![Webserver UI](documentation/manual_order.png 'Manual Orders')
@@ -224,179 +184,6 @@ var/strategies/your_strategy.js
 # or wrap strategy into any sub folder depth
 var/strategies/my_strategy/my_strategy.js
 var/strategies/subfolder1/our_strategy/our_strategy.js
-```
-
-## Tools / Watchdog
-
-- `order_adjust` Keep open orders in bid / ask of the orderbook in first position
-
-### Watchdog
-
-- `stoploss` provide general stoploss order in percent of entry price (Exchange Order)
-- `risk_reward_ratio` Creates Risk Reward order for take profit and stoploss (Exchange Order Limit+Stop)
-- `stoploss_watch` Close open position if ticker price falls below the percent lose; use this for exchange that dont support stop_loss order liek Binance
-- `trailing_stop` Use native exchange trailing stop; if supported by exchange eg `Bitfinex`
-
-```
-    'watchdogs': [
-        {
-            'name': 'stoploss',
-            'percent': 3,
-        },
-        {
-            'name': 'risk_reward_ratio',
-            'target_percent': 6,
-            'stop_percent': 3,
-        },
-        {
-            'name': 'stoploss_watch',
-            'stop': 1.2,
-        },
-        {
-            'name': 'trailing_stop',
-            'target_percent': 1.2,
-            'stop_percent': 0.5
-        }
-    ],
-```
-
-### Tick Interval
-
-Per default every strategy is "ticked" every full minute with a ~10sec time window. If you want to tick every 15 minutes or less see possible examples below.
-
-Supported units are "m" (minute) and "s" (seconds)
-
-```json
-{
-  "strategies": [
-    {
-      "strategy": "cci",
-      "interval": "15m"
-    },
-    {
-      "strategy": "cci2",
-      "interval": "30s"
-    },
-    {
-      "strategy": "cci3",
-      "interval": "60m"
-    }
-  ]
-}
-```
-
-## Trading
-
-### Capital
-
-To allow the bot to trade you need to give some "playing capital". You can allow to by via asset or currency amount, see examples below.
-You should only provide one of them, first wins.
-
-```
-    c.symbols.push({
-        'symbol': 'BTC-EUR',
-        'exchange': 'coinbase_pro',
-        'trade': {
-            'capital': 0.015, // this will buy 0.015 BTC
-            'currency_capital': 50,  // this will use 50 EUR and buys the equal amount of BTC (example: BTC price 3000 use 50 EUR. will result in 0.016 BTC)
-            'balance_percent': 75,  // this will use 75 % of your exchange margin tradable balance. Currently implemented only on Bitfinex exchange.
-        },
-    })
-```
-
-### Live Strategy
-
-Every strategy stat should be live must be places inside `trade`.
-
-```json
-{
-  "trade": {
-    "strategies": [
-      {
-        "strategy": "dip_catcher",
-        "interval": "15m",
-        "options": {
-          "period": "15m"
-        }
-      }
-    ]
-  }
-}
-```
-
-Inside logs, visible via browser ui, you can double check the strategies init process after the application started.
-
-```
-[info] Starting strategy intervals
-[info] "binance_futures" - "ETHUSDT" - "trade" - init strategy "dip_catcher" (15m) in 11.628 minutes
-[info] "binance_futures" - "BTCUSDT" - "trade" first strategy run "dip_catcher" now every 15.00 minutes
-```
-
-### Full Trade Example
-
-An example `instance.js` which trades can be found inside `instance.js.dist_trade`. Rename it or move the content to you file.
-
-```js
-const c = (module.exports = {});
-
-c.symbols = [
-  {
-    symbol: 'ETHUSDT',
-    exchange: 'binance_futures',
-    periods: ['1m', '15m', '1h'],
-    trade: {
-      currency_capital: 10,
-      strategies: [
-        {
-          strategy: 'dip_catcher',
-          interval: '15m',
-          options: {
-            period: '15m'
-          }
-        }
-      ]
-    },
-    watchdogs: [
-      {
-        name: 'risk_reward_ratio',
-        target_percent: 3.1,
-        stop_percent: 2.1
-      }
-    ]
-  }
-];
-```
-
-### Margin / Leverage
-
-Per pair you can set used margin before orders are created; depending on exchange
-
-```
-    c.symbols.push({
-        'symbol': 'BTCUSD',
-        'exchange': 'bitmex',
-        'extra': {
-            'bitmex_leverage': 5,
-        },
-    })
-
-    c.symbols.push({
-        'symbol': 'EOSUSD',
-        'exchange': 'bybit',
-        'extra': {
-            'bybit_leverage': 5,
-        },
-    })
-```
-
-## Tools
-
-### Fill data
-
-_outdated_, but there as an automatic filling on startup ~1000 candles from the past (depending on exchange) and continuously fetched when running
-
-```
-node index.js backfill -e bitmex -p 1m -s XRPZ18
 ```
 
 ## Signals
