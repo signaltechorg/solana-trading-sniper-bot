@@ -363,7 +363,9 @@ const services: Services = {
     return (strategyExecutor = new StrategyExecutor(
       this.getTechnicalAnalysisValidator(),
       this.getExchangeCandleCombine(),
-      this.getLogger()
+      this.getLogger(),
+      this.getCcxtCandleWatchService(),
+      this.getCcxtCandlePrefillService()
     ));
   },
 

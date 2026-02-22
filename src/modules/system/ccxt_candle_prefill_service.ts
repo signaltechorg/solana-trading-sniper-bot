@@ -58,7 +58,21 @@ export class CcxtCandlePrefillService {
     }
   }
 
+  /**
+   * Fetch 500 candles from the exchange REST API and return them immediately.
+   * No DB storage — caller uses the candles directly.
+   */
+  async fetchDirect(exchange: string, symbol: string, period: string): Promise<ExchangeCandlestick[]> {
+    return this.fetchRaw(exchange, symbol, period);
+  }
+
   private async fetchAndStore([exchange, symbol, period]: PrefillJob): Promise<number> {
+    const candles = await this.fetchRaw(exchange, symbol, period);
+    await this.candleImporter.insertCandles(candles);
+    return candles.length;
+  }
+
+  private async fetchRaw(exchange: string, symbol: string, period: string): Promise<ExchangeCandlestick[]> {
     const ExchangeClass = (ccxt as any)[exchange];
     if (!ExchangeClass) {
       throw new Error(`Exchange "${exchange}" not found in CCXT`);
@@ -72,19 +86,16 @@ export class CcxtCandlePrefillService {
     // Drop the last candle — it may still be forming
     const complete = ohlcv.slice(0, -1);
 
-    const exchangeCandles = complete.map(c => new ExchangeCandlestick(
+    return complete.map(c => new ExchangeCandlestick(
       exchange,
       symbol,
       period,
-      Math.floor(c[0] / 1000), // CCXT timestamps are milliseconds
+      Math.floor(c[0] / 1000),
       c[1],
       c[2],
       c[3],
       c[4],
       c[5]
     ));
-
-    await this.candleImporter.insertCandles(exchangeCandles);
-    return exchangeCandles.length;
   }
 }

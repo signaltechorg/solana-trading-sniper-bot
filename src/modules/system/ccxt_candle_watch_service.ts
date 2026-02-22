@@ -34,6 +34,18 @@ export class CcxtCandleWatchService {
   }
 
   /**
+   * Returns true if the given exchange+symbol+period is currently subscribed
+   * via the websocket (i.e. it is present in the dashboard config).
+   */
+  isWatched(exchange: string, symbol: string, period: string): boolean {
+    const config = this.dashboardConfigService.getConfig();
+    return (
+      config.pairs.some(p => p.exchange === exchange && p.symbol === symbol) &&
+      config.periods.includes(period)
+    );
+  }
+
+  /**
    * Called when dashboard settings are saved. Stops old subscriptions and
    * starts new ones reflecting the updated pairs/periods configuration.
    */

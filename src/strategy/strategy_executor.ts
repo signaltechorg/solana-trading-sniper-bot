@@ -11,6 +11,9 @@ import type { TypedIndicatorDefinition, TypedStrategy } from './strategy';
 import type { Logger } from '../modules/services';
 import type { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import type { ExchangeCandleCombine } from '../modules/exchange/exchange_candle_combine';
+import type { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
+import type { CcxtCandlePrefillService } from '../modules/system/ccxt_candle_prefill_service';
+import { Candlestick } from '../dict/candlestick';
 
 // Import all built-in strategies
 import { AwesomeOscillatorCrossZero } from './strategies/awesome_oscillator_cross_zero';
@@ -48,7 +51,9 @@ export class StrategyExecutor {
   constructor(
     private technicalAnalysisValidator: TechnicalAnalysisValidator,
     private exchangeCandleCombine: ExchangeCandleCombine,
-    private readonly logger: Logger
+    private readonly logger: Logger,
+    private ccxtCandleWatchService: CcxtCandleWatchService,
+    private ccxtCandlePrefillService: CcxtCandlePrefillService
   ) {
     this.executor = new CoreExecutor();
   }
@@ -69,32 +74,59 @@ export class StrategyExecutor {
       throw new Error(`Strategy not found: ${strategyName}`);
     }
 
-    // Fetch candles
     const periodAsMinute = convertPeriodToMinute(period) * 60;
     const unixtime = Math.floor(Date.now() / 1000);
     const olderThenCurrentPeriod = unixtime - (unixtime % periodAsMinute) - periodAsMinute * 0.1;
 
-    const lookbacks = await this.exchangeCandleCombine.fetchCombinedCandles(
-      exchange,
-      symbol,
-      period,
-      [],
-      olderThenCurrentPeriod
-    );
+    let candlesAsc: Candlestick[];
 
-    if (!lookbacks[exchange] || lookbacks[exchange].length === 0) {
+    if (!this.ccxtCandleWatchService.isWatched(exchange, symbol, period)) {
+      // Pair is not in the websocket — fetch 500 candles directly from the REST API
+      const pairKey = `${exchange}:${symbol}:${period}`;
+      this.logger.info(`[StrategyExecutor] ${pairKey} not in websocket — fetching 500 history candles via REST`);
+      try {
+        const restCandles = await this.ccxtCandlePrefillService.fetchDirect(exchange, symbol, period);
+        candlesAsc = restCandles
+          .filter(c => c.time <= olderThenCurrentPeriod)
+          .sort((a, b) => a.time - b.time)
+          .map(c => new Candlestick(c.time, c.open, c.high, c.low, c.close, c.volume));
+      } catch (e: any) {
+        this.logger.error(`[StrategyExecutor] REST fetch failed for ${exchange}:${symbol}:${period}: ${e.message || String(e)}`);
+        return undefined;
+      }
+    } else {
+      // Normal path — pair is subscribed via websocket, read candles from DB
+      const lookbacks = await this.exchangeCandleCombine.fetchCombinedCandles(
+        exchange,
+        symbol,
+        period,
+        [],
+        olderThenCurrentPeriod
+      );
+
+      if (!lookbacks[exchange] || lookbacks[exchange].length === 0) {
+        this.logger.info(`Strategy skipped: no candles: ${strategyName} ${exchange}:${symbol}`);
+        return undefined;
+      }
+
+      if (!this.technicalAnalysisValidator.isValidCandleStickLookback(lookbacks[exchange].slice(), period)) {
+        this.logger.info(`Strategy skipped: outdated candles: ${strategyName} ${exchange}:${symbol}`);
+        return undefined;
+      }
+
+      candlesAsc = lookbacks[exchange].slice().reverse();
+    }
+
+    if (candlesAsc.length === 0) {
       this.logger.info(`Strategy skipped: no candles: ${strategyName} ${exchange}:${symbol}`);
       return undefined;
     }
 
-    // Validate lookbacks
-    if (!this.technicalAnalysisValidator.isValidCandleStickLookback(lookbacks[exchange].slice(), period)) {
-      this.logger.info(`Strategy skipped: outdated candles: ${strategyName} ${exchange}:${symbol}`);
+    // Ensure candles are in ascending order (oldest first)
+    if (candlesAsc[0].time > candlesAsc[candlesAsc.length - 1].time) {
+      this.logger.error(`[StrategyExecutor] ${exchange}:${symbol}:${period} candles are not in ascending order — skipping`);
       return undefined;
     }
-
-    // Convert to ascending order (oldest first) for the executor
-    const candlesAsc = lookbacks[exchange].slice().reverse();
 
     // Create strategy instance and execute
     const strategy = new StrategyClass(options);
