@@ -10,11 +10,7 @@ import { Slack } from '../notify/slack';
 import { Mail } from '../notify/mail';
 import { Telegram } from '../notify/telegram';
 
-import { Tickers } from '../storage/tickers';
 import { Ta } from './ta';
-
-import { SignalLogger } from './signal/signal_logger';
-import { SignalHttp } from './signal/signal_http';
 
 import { SignalRepository, CandlestickRepository } from '../repository';
 import { StrategyExecutor } from './strategy/v2/typed_backtest';
@@ -36,7 +32,6 @@ import { DATABASE_SCHEMA } from '../utils/database_schema';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import { LogsHttp } from './system/logs_http';
 import { LogsRepository, TickerLogRepository, TickerRepository } from '../repository';
-import { CandlestickResample } from './system/candlestick_resample';
 import { QueueManager } from '../utils/queue';
 import { FileCache } from '../utils/file_cache';
 
@@ -100,14 +95,12 @@ interface Parameters {
 
 export type Logger = ReturnType<typeof createLogger>;
 export { ConfigService } from './system/config_service';
-export { Tickers } from '../storage/tickers';
 export { LogsRepository, TickerLogRepository } from '../repository';
 export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
 export { ProfileService } from '../profile/profile_service';
 export { ProfilePairService } from './profile_pair_service';
 export { StrategyExecutor } from './strategy/v2/typed_backtest';
-export { SignalLogger } from './signal/signal_logger';
 export { FileCache } from '../utils/file_cache';
 export { BotRunner } from '../strategy/bot_runner';
 export { ExchangeInstanceService } from './system/exchange_instance_service';
@@ -118,13 +111,9 @@ let ta: Ta;
 let eventEmitter: events.EventEmitter;
 let logger: Logger;
 let notify: Notify;
-let tickers: Tickers;
 let queue: QueueManager;
 
 let candleStickImporter: CandleImporter;
-
-let signalLogger: SignalLogger;
-let signalHttp: SignalHttp;
 
 let signalRepository: SignalRepository;
 let candlestickRepository: CandlestickRepository;
@@ -136,7 +125,6 @@ let technicalAnalysisValidator: TechnicalAnalysisValidator;
 let logsHttp: LogsHttp;
 let logsRepository: LogsRepository;
 let tickerLogRepository: TickerLogRepository;
-let candlestickResample: CandlestickResample;
 let exchangeCandleCombine: ExchangeCandleCombine;
 let candleExportHttp: CandleExportHttp;
 let tickerRepository: TickerRepository;
@@ -161,14 +149,11 @@ export interface Services {
   getDatabase(): Sqlite.Database;
   getTa(): Ta;
   getCandleImporter(): CandleImporter;
-  getSignalLogger(): SignalLogger;
-  getSignalHttp(): SignalHttp;
   getSignalRepository(): SignalRepository;
   getCandlestickRepository(): CandlestickRepository;
   getEventEmitter(): events.EventEmitter;
   getLogger(): Logger;
   getNotifier(): Notify;
-  getTickers(): Tickers;
   getStrategyExecutor(): StrategyExecutor;
   createWebserverInstance(): Http;
   getSystemUtil(): ConfigService;
@@ -177,7 +162,6 @@ export interface Services {
   getLogsHttp(): LogsHttp;
   getTickerLogRepository(): TickerLogRepository;
   getTickerRepository(): TickerRepository;
-  getCandlestickResample(): CandlestickResample;
   getQueue(): QueueManager;
   getCandleExportHttp(): CandleExportHttp;
   getExchangeCandleCombine(): ExchangeCandleCombine;
@@ -262,22 +246,6 @@ const services: Services = {
     return (candleStickImporter = new CandleImporter(this.getCandlestickRepository()));
   },
 
-  getSignalLogger: function (): SignalLogger {
-    if (signalLogger) {
-      return signalLogger;
-    }
-
-    return (signalLogger = new SignalLogger(this.getSignalRepository()));
-  },
-
-  getSignalHttp: function (): SignalHttp {
-    if (signalHttp) {
-      return signalHttp;
-    }
-
-    return (signalHttp = new SignalHttp(this.getSignalRepository()));
-  },
-
   getSignalRepository: function (): SignalRepository {
     if (signalRepository) {
       return signalRepository;
@@ -351,13 +319,6 @@ const services: Services = {
     return (notify = new Notify(notifiers));
   },
 
-  getTickers: function (): Tickers {
-    if (tickers) {
-      return tickers;
-    }
-
-    return (tickers = new Tickers());
-  },
 
   getStrategyExecutor: function (): StrategyExecutor {
     if (strategyExecutor) {
@@ -426,13 +387,6 @@ const services: Services = {
     return (tickerRepository = new TickerRepository(this.getDatabase(), this.getLogger()));
   },
 
-  getCandlestickResample: function (): CandlestickResample {
-    if (candlestickResample) {
-      return candlestickResample;
-    }
-
-    return (candlestickResample = new CandlestickResample(this.getCandlestickRepository(), this.getCandleImporter()));
-  },
 
   getQueue: function (): QueueManager {
     if (queue) {
@@ -540,7 +494,7 @@ const services: Services = {
   },
 
   getSignalsController: function (templateHelpers: any): SignalsController {
-    return new SignalsController(templateHelpers, this.getSignalHttp());
+    return new SignalsController(templateHelpers, this.getSignalRepository());
   },
 
   getCandlesController: function (templateHelpers: any): CandlesController {
@@ -647,7 +601,7 @@ const services: Services = {
       this.getProfileService(),
       this.getStrategyExecutor(),
       this.getNotifier(),
-      this.getSignalLogger(),
+      this.getSignalRepository(),
       this.getLogger()
     ));
   }

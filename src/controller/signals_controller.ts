@@ -1,9 +1,9 @@
 import { BaseController, TemplateHelpers } from './base_controller';
-import { SignalHttp } from '../modules/signal/signal_http';
+import { SignalRepository } from '../repository';
 import express from 'express';
 
 export class SignalsController extends BaseController {
-  constructor(templateHelpers: TemplateHelpers, private signalHttp: SignalHttp) {
+  constructor(templateHelpers: TemplateHelpers, private signalRepository: SignalRepository) {
     super(templateHelpers);
   }
 
@@ -12,7 +12,7 @@ export class SignalsController extends BaseController {
       res.render('signals', {
         activePage: 'signals',
         title: 'Signals | Crypto Bot',
-        signals: await this.signalHttp.getSignals(Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30)
+        signals: await this.signalRepository.getSignals(Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30)
       });
     });
   }

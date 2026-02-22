@@ -1,6 +1,6 @@
 import { Notify } from '../notify/notify';
 import { Logger } from '../modules/services';
-import { SignalLogger } from '../modules/signal/signal_logger';
+import { SignalRepository } from '../repository';
 import { ProfileService } from '../profile/profile_service';
 import { StrategyExecutor } from '../modules/strategy/v2/typed_backtest';
 import type { Bot, Profile } from '../profile/types';
@@ -36,7 +36,7 @@ export class BotRunner {
     private readonly profileService: ProfileService,
     private readonly strategyExecutor: StrategyExecutor,
     private readonly notifier: Notify,
-    private readonly signalLogger: SignalLogger,
+    private readonly signalRepository: SignalRepository,
     private readonly logger: Logger
   ) {}
 
@@ -111,7 +111,7 @@ export class BotRunner {
 
     if (!signal) return;
 
-    this.signalLogger.signal(profile.exchange, bot.pair, { price: marketData.ask, strategy: bot.strategy }, signal, bot.strategy);
+    this.signalRepository.insertSignal(profile.exchange, bot.pair, { price: marketData.ask, strategy: bot.strategy }, signal, bot.strategy);
 
     this.notifier.send(`[${signal} (${bot.strategy})] ${profile.exchange}:${bot.pair} @ ${marketData.ask}`);
 
