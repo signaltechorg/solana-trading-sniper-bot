@@ -1,4 +1,3 @@
-import moment from 'moment';
 import { Notify } from '../notify/notify';
 import { Logger } from '../modules/services';
 import { SignalLogger } from '../modules/signal/signal_logger';
@@ -31,9 +30,6 @@ function isFuturesPair(pair: string): boolean {
 }
 
 export class BotRunner {
-  /** Last notification time per bot id — prevents watch-mode spam (30-min window). */
-  private readonly notified: Record<string, Date> = {};
-
   constructor(
     private readonly profileService: ProfileService,
     private readonly strategyExecutor: StrategyExecutor,
@@ -64,17 +60,6 @@ export class BotRunner {
     }, delay);
 
     this.logger.info(`BotRunner: first tick in ${(delay / 1000).toFixed(1)}s`);
-
-    // Purge stale throttle entries every hour
-    setInterval(
-      () => {
-        const cutoff = moment().subtract(1, 'hour').toDate();
-        for (const key of Object.keys(this.notified)) {
-          if (this.notified[key] < cutoff) delete this.notified[key];
-        }
-      },
-      60 * 60 * 1000
-    );
   }
 
   private async onTick(): Promise<void> {
@@ -93,6 +78,8 @@ export class BotRunner {
       }
 
       if (minutesSinceEpoch % periodMin !== 0) continue;
+
+      this.logger.info(`BotRunner: triggered "${bot.id}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
 
       try {
         await this.runBot(bot, profile);
@@ -122,12 +109,9 @@ export class BotRunner {
 
     this.notifier.send(`[${signal} (${bot.strategy})] ${profile.exchange}:${bot.pair} @ ${marketData.ask}`);
 
-    if (isWatchOnly) {
-      const cutoff = moment().subtract(30, 'minutes').toDate();
-      if (this.notified[bot.id] && this.notified[bot.id] >= cutoff) return;
-      this.notified[bot.id] = new Date();
-    } else {
-      this.logger.info(`BotRunner: signal "${signal}" ${profile.exchange}:${bot.pair} via "${bot.strategy}"`);
+    this.logger.info(`BotRunner: signal "${signal}" ${profile.exchange}:${bot.pair} via "${bot.strategy}"`);
+
+    if (!isWatchOnly) {
       await this.executeSignal(bot, profile, signal);
     }
   }
