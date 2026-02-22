@@ -251,7 +251,7 @@ const services: Services = {
       return ta;
     }
 
-    return (ta = new Ta(this.getCandlestickRepository(), this.getTickers()));
+    return (ta = new Ta(this.getCandlestickRepository()));
   },
 
   getCandleImporter: function (): CandleImporter {

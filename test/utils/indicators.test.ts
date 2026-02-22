@@ -356,6 +356,59 @@ describe('#indicators', () => {
     });
   });
 
+  describe('wicked', () => {
+    it('returns one entry per candle (no warmup)', async () => {
+      const result = await indicators.wicked(candlesAsc, { key: 'wicked', indicator: 'wicked' });
+      assert.equal(result.wicked.length, candlesAsc.length);
+    });
+
+    it('result is oldest-first matching input order', async () => {
+      // Use a small slice to verify ordering: wicked[0] corresponds to candlesAsc[0]
+      const slice = candlesAsc.slice(0, 5);
+      const result = await indicators.wicked(slice, { key: 'wicked', indicator: 'wicked' });
+
+      // Manually compute expected value for the first (oldest) candle
+      const c = slice[0];
+      const range = c.high - c.low;
+      const calcPercent = (v: number, t: number) => Math.round((v / t) * 10000) / 100;
+      const expectedTop = Math.abs(calcPercent(c.high - Math.max(c.close, c.open), range));
+
+      assert.equal((result.wicked[0] as any).top, expectedTop, 'result[0] should correspond to oldest candle');
+    });
+
+    it('each entry has top, body, bottom fields', async () => {
+      const result = await indicators.wicked(candlesAsc, { key: 'wicked', indicator: 'wicked' });
+      const first = result.wicked[0] as any;
+      assert.equal('top' in first, true, 'Should have top');
+      assert.equal('body' in first, true, 'Should have body');
+      assert.equal('bottom' in first, true, 'Should have bottom');
+    });
+
+    it('top + body + bottom roughly equals 100', async () => {
+      const result = await indicators.wicked(candlesAsc, { key: 'wicked', indicator: 'wicked' });
+      const last = result.wicked[result.wicked.length - 1] as any;
+      const sum = last.top + last.body + last.bottom;
+      // Due to rounding the sum is approximately 100
+      assert.equal(sum >= 99 && sum <= 101, true, `top+body+bottom should ~= 100, got ${sum}`);
+    });
+
+    it('last entry corresponds to most recent candle', async () => {
+      const slice = candlesAsc.slice(-3);
+      const result = await indicators.wicked(slice, { key: 'wicked', indicator: 'wicked' });
+
+      const c = slice[slice.length - 1]; // most recent
+      const range = c.high - c.low;
+      const calcPercent = (v: number, t: number) => Math.round((v / t) * 10000) / 100;
+      const expectedBottom = Math.abs(calcPercent(c.low - Math.min(c.close, c.open), range));
+
+      assert.equal(
+        (result.wicked[result.wicked.length - 1] as any).bottom,
+        expectedBottom,
+        'last result should correspond to most recent candle'
+      );
+    });
+  });
+
   describe('candles', () => {
     it('returns candles unchanged', async () => {
       const result = await indicators.candles(candlesAsc, { key: 'candles', indicator: 'candles' });

@@ -826,7 +826,8 @@ export const indicators = {
       });
     }
 
-    return { [key]: results.reverse() };
+    // oldest-first, matching all other indicators (no reverse)
+    return { [key]: results };
   },
 
   // Candles (pass-through) - requires candles

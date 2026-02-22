@@ -1,15 +1,39 @@
 import moment from 'moment';
 import {
-  getPredefinedIndicators,
   getTrendingDirectionLastItem,
   getCrossedSince,
   getBollingerBandPercent,
   getTrendingDirection
 } from '../utils/technical_analysis';
-import { Ticker } from '../dict/ticker';
+import { indicators } from '../utils/indicators';
 import { Candlestick } from '../dict/candlestick';
 import { CandlestickRepository } from '../repository';
-import { Tickers } from '../storage/tickers';
+
+async function calculateDashboardIndicators(candles: Candlestick[]): Promise<Record<string, any[]>> {
+  if (candles.length >= 2 && candles[0].time >= candles[candles.length - 1].time) {
+    throw new Error('Candles must be oldest-first (ascending time order)');
+  }
+
+  // candles must be oldest-first for all indicator functions
+  const closes = candles.map(c => c.close);
+
+  const results = await Promise.all([
+    indicators.sma(closes, { key: 'sma_200', indicator: 'sma', options: { length: 200 } }),
+    indicators.sma(closes, { key: 'sma_50', indicator: 'sma', options: { length: 50 } }),
+    indicators.ema(closes, { key: 'ema_55', indicator: 'ema', options: { length: 55 } }),
+    indicators.ema(closes, { key: 'ema_200', indicator: 'ema', options: { length: 200 } }),
+    indicators.rsi(closes, { key: 'rsi', indicator: 'rsi', options: { length: 14 } }),
+    indicators.cci(candles, { key: 'cci', indicator: 'cci', options: { length: 20 } }),
+    indicators.ao(candles, { key: 'ao', indicator: 'ao' }),
+    indicators.macd(closes, { key: 'macd', indicator: 'macd', options: { fast_length: 12, slow_length: 26, signal_length: 9 } }),
+    indicators.mfi(candles, { key: 'mfi', indicator: 'mfi', options: { length: 14 } }),
+    indicators.bb(closes, { key: 'bollinger_bands', indicator: 'bb', options: { length: 20, stddev: 2 } }),
+    indicators.stoch_rsi(closes, { key: 'stoch_rsi', indicator: 'stoch_rsi', options: { rsi_length: 14, stoch_length: 14, k: 3, d: 3 } }),
+    indicators.wicked(candles, { key: 'wicked', indicator: 'wicked' })
+  ]);
+
+  return Object.assign({}, ...results);
+}
 
 export interface TaSymbol {
   exchange: string;
@@ -19,10 +43,7 @@ export interface TaSymbol {
 }
 
 export class Ta {
-  constructor(
-    private candlestickRepository: CandlestickRepository,
-    private tickers: Tickers
-  ) {}
+  constructor(private candlestickRepository: CandlestickRepository) {}
 
   async getTaForPeriods(periods: string[], symbols: TaSymbol[]): Promise<any> {
     const promises: Promise<any>[] = [];
@@ -64,13 +85,14 @@ export class Ta {
               change = 100 * (candles[0].close / dayCandle.close) - 100;
             }
 
-            const result = await getPredefinedIndicators(candles.slice().reverse());
+            // candles from repo are newest-first; reverse to oldest-first for indicators
+            const result = await calculateDashboardIndicators(candles.slice().reverse());
             return {
               symbol: symbol.symbol,
               exchange: symbol.exchange,
               period: period,
               ta: result,
-              ticker: new Ticker(symbol.exchange, symbol.symbol, undefined, candles[0].close, candles[0].close),
+              price: candles[0].close,
               percentage_change: change
             };
           })()
@@ -87,11 +109,10 @@ export class Ta {
 
     // Pre-populate all symbols so they appear even without candle data
     Object.values(uniqueSymbols).forEach((symbol: TaSymbol) => {
-      const liveTicker = this.tickers.get(symbol.exchange, symbol.symbol);
       x[symbol.symbol] = {
         symbol: symbol.symbol,
         exchange: symbol.exchange,
-        ticker: liveTicker || { bid: 0, ask: 0 },
+        ticker: { bid: 0, ask: 0 },
         ta: {},
         percentage_change: undefined
       };
@@ -99,14 +120,16 @@ export class Ta {
 
     v.forEach((v: any) => {
       if (!x[v.symbol]) {
-        const liveTicker = this.tickers.get(v.exchange, v.symbol);
         x[v.symbol] = {
           symbol: v.symbol,
           exchange: v.exchange,
-          ticker: liveTicker || v.ticker,
+          ticker: { bid: v.price, ask: v.price },
           ta: {},
           percentage_change: v.percentage_change
         };
+      } else {
+        x[v.symbol].ticker = { bid: v.price, ask: v.price };
+        x[v.symbol].percentage_change = v.percentage_change;
       }
 
       // flat indicator list
@@ -159,7 +182,7 @@ export class Ta {
           values[key].percent =
             values[key].value && values[key].value.upper && values[key].value.lower
               ? getBollingerBandPercent(
-                  (v.ticker.ask + v.ticker.bid) / 2,
+                  v.price,
                   values[key].value.upper,
                   values[key].value.lower
                 ) * 100
