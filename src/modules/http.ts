@@ -15,7 +15,8 @@ export class Http {
   constructor(
     private systemUtil: ConfigService,
     private readonly projectDir: string,
-    private services: Services
+    private services: Services,
+    private readonly portOverride?: number
   ) {
     // Helper functions for templates (previously Twig filters)
     this.templateHelpers = {
@@ -159,7 +160,7 @@ export class Http {
     app.use('/', mainRouter);
 
     const ip = this.systemUtil.getConfig('webserver.ip', '0.0.0.0');
-    const port = this.systemUtil.getConfig('webserver.port', 8080);
+    const port = this.portOverride ?? this.systemUtil.getConfig('webserver.port', 8080);
 
     app.listen(port, ip);
 

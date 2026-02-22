@@ -10,8 +10,9 @@ const projectDir = process.cwd();
 program
   .command('trade')
   .description('start crypto trading bot')
-  .action(async () => {
-    await services.boot(projectDir);
+  .option('--port <number>', 'override webserver port')
+  .action(async (options) => {
+    await services.boot(projectDir, options.port ? parseInt(options.port, 10) : undefined);
 
     const cmd = new TradeCommand();
     cmd.execute();

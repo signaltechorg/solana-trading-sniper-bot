@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import events from 'events';
 
 import { createLogger, transports, format } from 'winston';
@@ -31,6 +32,7 @@ import { ProfileService } from '../profile/profile_service';
 import { ProfilePairService } from './profile_pair_service';
 import { BotRunner } from '../strategy/bot_runner';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
+import { DATABASE_SCHEMA } from '../utils/database_schema';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
 import { LogsHttp } from './system/logs_http';
 import { LogsRepository, TickerLogRepository, TickerRepository } from '../repository';
@@ -92,6 +94,7 @@ interface Config {
 
 interface Parameters {
   projectDir: string;
+  portOverride?: number;
 }
 
 export type Logger = ReturnType<typeof createLogger>;
@@ -151,7 +154,7 @@ const parameters: Parameters = {
 };
 
 export interface Services {
-  boot(projectDir: string): Promise<void>;
+  boot(projectDir: string, portOverride?: number): Promise<void>;
   getDatabase(): Sqlite.Database;
   getTa(): Ta;
   getCandleImporter(): CandleImporter;
@@ -205,8 +208,9 @@ export interface Services {
 }
 
 const services: Services = {
-  boot: async function (projectDir: string): Promise<void> {
+  boot: async function (projectDir: string, portOverride?: number): Promise<void> {
     parameters.projectDir = projectDir;
+    parameters.portOverride = portOverride;
 
     // Load config if exists, otherwise use empty config
     try {
@@ -223,11 +227,17 @@ const services: Services = {
       return db;
     }
 
-    const myDb = new Sqlite('bot.db');
-    myDb.pragma('journal_mode = WAL');
+    const dbPath = path.join(parameters.projectDir, 'var', 'bot.db');
+    const dbExists = fs.existsSync(dbPath);
 
+    const myDb = new Sqlite(dbPath);
+    myDb.pragma('journal_mode = WAL');
     myDb.pragma('SYNCHRONOUS = 1;');
     myDb.pragma('LOCKING_MODE = EXCLUSIVE;');
+
+    if (!dbExists) {
+      myDb.exec(DATABASE_SCHEMA);
+    }
 
     return (db = myDb);
   },
@@ -358,7 +368,7 @@ const services: Services = {
   },
 
   createWebserverInstance: function (): Http {
-    return new Http(this.getSystemUtil(), parameters.projectDir, this);
+    return new Http(this.getSystemUtil(), parameters.projectDir, this, parameters.portOverride);
   },
 
   getSystemUtil: function (): ConfigService {

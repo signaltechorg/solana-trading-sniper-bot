@@ -1,6 +1,6 @@
 {
   "name": "crypto-trading-bot",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": "Daniel Espendiller",
   "bugs": "https://github.com/Haehnchen/crypto-trading-bot/issues",
   "contributors": [
@@ -36,9 +36,8 @@
     "winston": "^3.19.0"
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22.0"
   },
-  "homepage": "https://github.com/coinbase/coinbase-pro-node",
   "keywords": [
     "cryptocurrency",
     "crypto",

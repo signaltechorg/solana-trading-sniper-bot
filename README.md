@@ -37,47 +37,90 @@ For building sqlite and indicators libraries (if needed)
 sudo apt-get install build-essential
 ```
 
-### Install packages
+### Start
 
 ```
-➜ npm install --production
-```
-
-Create instance file for pairs and changes
-
-```
-cp instance.js.dist instance.js
-```
-
-Provide a configuration with your exchange credentials
-
-```
-cp conf.json.dist conf.json
-```
-
-Create a new sqlite database use bot.sql scheme to create the tables
-
-```
-sqlite3 bot.db < bot.sql
-```
-
-Lets start it
-
-```
+npm install --production
 npm start
 ```
 
-## How to use: Docker
-
-For initialize the configuration once
-
 ```
-➜ cp instance.js.dist instance.js && cp conf.json.dist conf.json && sqlite3 bot.db < bot.sql
-➜ docker-compose build
-➜ docker-compose up -d
+# or with special port
+# npm start -- --port=55555
 ```
 
-After this you can use `docker-compose` which will give you a running bot via <http://127.0.0.1:8080>
+```
+open browser: http://127.0.0.1:8080
+```
+
+## Web UI
+
+### Dashboard
+
+![Webserver UI](documentation/cryptobot.png 'Webserver UI')
+
+### Trades / Positions / Orders
+
+![Webserver UI](documentation/trades.png 'Trades / Positions / Orders')
+
+### Manual Orders
+
+![Webserver UI](documentation/manual_order.png 'Manual Orders')
+
+## Build In Strategies
+
+Common strategy with indicators are inside, which most of the time are not profitable. See some more advanced strategy in the list below
+
+- [dip_catcher](src/strategy/strategies/dip_catcher/README.md)
+- [dca_dipper](src/strategy/strategies/dca_dipper/README.md) - **Long term invest** Dollar-Cost Averaging (DCA) Dip Investor Strategy
+
+Find some example strategies inside [src/strategy/strategies](src/strategy/strategies)
+
+## Custom Strategies
+
+For custom strategies use [var/strategies](var/strategies) folder.
+
+```
+# simple file structure
+var/strategies/your_strategy.js
+
+# or wrap strategy into any sub folder depth
+var/strategies/my_strategy/my_strategy.js
+```
+
+## Signals
+
+### Slack
+
+![Webserver UI](documentation/slack_signals.png 'Slack signals')
+
+## Tests
+
+```
+npm test
+```
+
+### Security / Authentication
+
+As the webserver provides just basic auth for access you should combine some with eh a https for public server. Here s simple `proxy_pass` for nginx.
+
+```
+# /etc/nginx/sites-available/YOURHOST
+server {
+    server_name YOURHOST;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/YOURHOST/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/YOURHOST/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+```
 
 ## Setting Up Telegram Bot
 
@@ -107,96 +150,6 @@ Message
 
 Look for id: -1001118554477 is your chat id (with the negative sign).
 
-### Log messages to Telegram
-
-For example setup, check `conf.json.dist file`, log.telegram section , set chatId, token, level (default is info). Check more options https://github.com/ivanmarban/winston-telegram#readme
-
-## Webserver
-
-Some browser links
-
-- UI: http://127.0.0.1:8080
-- Signals: http://127.0.0.1:8080/signals
-- Tradingview: http://127.0.0.1:8080/tradingview/BTCUSD
-- Profiles: http://127.0.0.1:8080/profiles
-
-### Security / Authentication
-
-As the webserver provides just basic auth for access you should combine some with eh a https for public server. Here s simple `proxy_pass` for nginx.
-
-```
-# /etc/nginx/sites-available/YOURHOST
-server {
-    server_name YOURHOST;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-    }
-
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/YOURHOST/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/YOURHOST/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
-
-```
-
-You should also set the listen ip to a local one
-
-```
-# config.json
-webserver.ip: 127.0.0.1
-
-```
-
-## Web UI
-
-### Dashboard
-
-![Webserver UI](documentation/cryptobot.png 'Webserver UI')
-
-### Trades / Positions / Orders
-
-![Webserver UI](documentation/trades.png 'Trades / Positions / Orders')
-
-### Manual Orders
-
-![Webserver UI](documentation/manual_order.png 'Manual Orders')
-
-## Build In Strategies
-
-Common strategy with indicators are inside, which most of the time are not profitable. See some more advanced strategy in the list below
-
-- [dip_catcher](src/modules/strategy/strategies/dip_catcher/README.md)
-- [dca_dipper](src/modules/strategy/strategies/dca_dipper/README.md) - **Long term invest** Dollar-Cost Averaging (DCA) Dip Investor Strategy
-
-Find some example strategies inside [src/modules/strategy/strategies](src/modules/strategy/strategies)
-
-## Custom Strategies
-
-For custom strategies use [var/strategies](var/strategies) folder.
-
-```
-# simple file structure
-var/strategies/your_strategy.js
-
-# or wrap strategy into any sub folder depth
-var/strategies/my_strategy/my_strategy.js
-var/strategies/subfolder1/our_strategy/our_strategy.js
-```
-
-## Signals
-
-### Slack
-
-![Webserver UI](documentation/slack_signals.png 'Slack signals')
-
-## Tests
-
-```
-npm test
-```
 
 ## Related Links
 
