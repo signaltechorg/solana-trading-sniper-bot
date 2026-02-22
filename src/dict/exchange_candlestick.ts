@@ -1,12 +1,3 @@
-export interface CandlestickLike {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
 export class ExchangeCandlestick {
   constructor(
     public exchange: string,
@@ -28,19 +19,5 @@ export class ExchangeCandlestick {
     if (time <= 631148400) {
       throw `Invalid candlestick time given: ${time} - ${JSON.stringify(Object.values(arguments))}`;
     }
-  }
-
-  static createFromCandle(exchange: string, symbol: string, period: string, candle: CandlestickLike): ExchangeCandlestick {
-    return new ExchangeCandlestick(
-      exchange,
-      symbol,
-      period,
-      candle.time,
-      candle.open,
-      candle.high,
-      candle.low,
-      candle.close,
-      candle.volume
-    );
   }
 }

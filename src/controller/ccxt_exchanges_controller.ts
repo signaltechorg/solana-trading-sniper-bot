@@ -1,6 +1,7 @@
 import { BaseController, TemplateHelpers } from './base_controller';
 import * as ccxt from 'ccxt';
 import express from 'express';
+import { ExchangeInstanceService } from '../modules/system/exchange_instance_service';
 
 export interface MarketInfo {
   symbol: string;
@@ -41,7 +42,7 @@ export interface ExchangeInfo {
 }
 
 export class CcxtExchangesController extends BaseController {
-  constructor(templateHelpers: TemplateHelpers) {
+  constructor(templateHelpers: TemplateHelpers, private exchangeInstanceService: ExchangeInstanceService) {
     super(templateHelpers);
   }
 
@@ -81,21 +82,13 @@ export class CcxtExchangesController extends BaseController {
         const exchangeId = req.params.exchangeId;
         const typeFilter = req.query.type as string | undefined;
 
-        const ExchangeClass = ccxt[exchangeId as keyof typeof ccxt] as typeof ccxt.Exchange;
-        if (!ExchangeClass) {
-          return res.status(404).json({ error: `Exchange "${exchangeId}" not found` });
-        }
-
-        // Create exchange instance with rate limiting enabled
-        const exchange = new ExchangeClass({
-          enableRateLimit: true
-        });
-
-        // Try to load markets
+        let exchange: ccxt.Exchange;
         try {
-          await exchange.loadMarkets();
+          exchange = await this.exchangeInstanceService.getPublicExchange(exchangeId);
         } catch (loadError: any) {
-          // Handle authentication-required exchanges gracefully
+          if (loadError.message?.includes('not supported')) {
+            return res.status(404).json({ error: `Exchange "${exchangeId}" not found` });
+          }
           if (loadError.name === 'AuthenticationError' ||
               loadError.message?.includes('apiKey') ||
               loadError.message?.includes('credential')) {

@@ -1,7 +1,7 @@
-import * as ccxt from 'ccxt';
 import { CandleImporter } from './candle_importer';
 import { ExchangeCandlestick } from '../../dict/exchange_candlestick';
 import { Logger } from '../services';
+import { ExchangeInstanceService } from './exchange_instance_service';
 
 // [exchange, symbol, period]
 export type PrefillJob = [string, string, string];
@@ -12,7 +12,11 @@ export class CcxtCandlePrefillService {
   private queue: PrefillJob[] = [];
   private running = false;
 
-  constructor(private candleImporter: CandleImporter, private logger: Logger) {}
+  constructor(
+    private candleImporter: CandleImporter,
+    private logger: Logger,
+    private exchangeInstanceService: ExchangeInstanceService,
+  ) {}
 
   enqueue(jobs: PrefillJob[]): void {
     const newJobs = jobs.filter(j => !this.queue.some(q => this.key(q) === this.key(j)));
@@ -73,13 +77,7 @@ export class CcxtCandlePrefillService {
   }
 
   private async fetchRaw(exchange: string, symbol: string, period: string): Promise<ExchangeCandlestick[]> {
-    const ExchangeClass = (ccxt as any)[exchange];
-    if (!ExchangeClass) {
-      throw new Error(`Exchange "${exchange}" not found in CCXT`);
-    }
-
-    const ccxtExchange: ccxt.Exchange = new ExchangeClass({ enableRateLimit: true });
-    await ccxtExchange.loadMarkets();
+    const ccxtExchange = await this.exchangeInstanceService.getPublicExchange(exchange);
 
     const ohlcv = await ccxtExchange.fetchOHLCV(symbol, period, undefined, CANDLES_LIMIT) as number[][];
 

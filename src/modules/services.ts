@@ -41,6 +41,7 @@ import { QueueManager } from '../utils/queue';
 import { FileCache } from '../utils/file_cache';
 
 import { ExchangeCandleCombine } from './exchange/exchange_candle_combine';
+import { ExchangeInstanceService } from './system/exchange_instance_service';
 import { CandleExportHttp } from './system/candle_export_http';
 import { CandleImporter } from './system/candle_importer';
 
@@ -109,6 +110,7 @@ export { StrategyExecutor } from './strategy/v2/typed_backtest';
 export { SignalLogger } from './signal/signal_logger';
 export { FileCache } from '../utils/file_cache';
 export { BotRunner } from '../strategy/bot_runner';
+export { ExchangeInstanceService } from './system/exchange_instance_service';
 
 let db: Sqlite.Database | undefined;
 let config: Config;
@@ -148,6 +150,7 @@ let profileService: ProfileService;
 let profilePairService: ProfilePairService;
 let fileCache: FileCache;
 let botRunner: BotRunner;
+let exchangeInstanceService: ExchangeInstanceService;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -198,6 +201,7 @@ export interface Services {
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getProfileController(templateHelpers: any): ProfileController;
   getSettingsController(templateHelpers: any): SettingsController;
+  getExchangeInstanceService(): ExchangeInstanceService;
   getProfileService(): ProfileService;
   getProfilePairService(): ProfilePairService;
   getDeskService(): DeskService;
@@ -517,7 +521,7 @@ const services: Services = {
     if (ccxtCandlePrefillService) {
       return ccxtCandlePrefillService;
     }
-    return (ccxtCandlePrefillService = new CcxtCandlePrefillService(this.getCandleImporter(), this.getLogger()));
+    return (ccxtCandlePrefillService = new CcxtCandlePrefillService(this.getCandleImporter(), this.getLogger(), this.getExchangeInstanceService()));
   },
 
   getCcxtCandleWatchService: function (): CcxtCandleWatchService {
@@ -556,7 +560,7 @@ const services: Services = {
   },
 
   getCcxtExchangesController: function (templateHelpers: any): CcxtExchangesController {
-    return new CcxtExchangesController(templateHelpers);
+    return new CcxtExchangesController(templateHelpers, this.getExchangeInstanceService());
   },
 
   getProfileController: function (templateHelpers: any): ProfileController {
@@ -567,12 +571,19 @@ const services: Services = {
     return new SettingsController(templateHelpers, this.getSystemUtil());
   },
 
+  getExchangeInstanceService: function (): ExchangeInstanceService {
+    if (exchangeInstanceService) {
+      return exchangeInstanceService;
+    }
+    return (exchangeInstanceService = new ExchangeInstanceService());
+  },
+
   getProfileService: function (): ProfileService {
     if (profileService) {
       return profileService;
     }
 
-    return (profileService = new ProfileService(this.getSystemUtil()));
+    return (profileService = new ProfileService(this.getSystemUtil(), this.getExchangeInstanceService()));
   },
 
   getProfilePairService: function (): ProfilePairService {
@@ -580,7 +591,7 @@ const services: Services = {
       return profilePairService;
     }
 
-    return (profilePairService = new ProfilePairService(this.getFileCache()));
+    return (profilePairService = new ProfilePairService(this.getFileCache(), this.getExchangeInstanceService()));
   },
 
   getDeskService: function (): DeskService {

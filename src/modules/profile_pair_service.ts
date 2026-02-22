@@ -1,6 +1,6 @@
-import * as ccxt from 'ccxt';
 import { Profile } from '../profile/types';
 import { FileCache } from './services';
+import { ExchangeInstanceService } from './system/exchange_instance_service';
 
 export interface ProfilePair {
   profileId: string;
@@ -25,9 +25,11 @@ const COINGECKO_TTL = 21600; // 6 hours
 
 export class ProfilePairService {
   private cache: FileCache;
+  private exchangeInstanceService: ExchangeInstanceService;
 
-  constructor(cache: FileCache) {
+  constructor(cache: FileCache, exchangeInstanceService: ExchangeInstanceService) {
     this.cache = cache;
+    this.exchangeInstanceService = exchangeInstanceService;
   }
 
   /**
@@ -125,17 +127,7 @@ export class ProfilePairService {
       return cached;
     }
 
-    // Load from exchange (no auth needed for public market data)
-    const ExchangeClass = (ccxt as any)[exchangeName];
-    if (!ExchangeClass) {
-      throw new Error(`Exchange ${exchangeName} not supported`);
-    }
-
-    const exchange = new ExchangeClass({
-      enableRateLimit: true
-    });
-
-    await exchange.loadMarkets();
+    const exchange = await this.exchangeInstanceService.getPublicExchange(exchangeName);
     const markets = Object.values(exchange.markets) as any[];
 
     this.cache.set(cacheKey, markets, MARKET_TTL);

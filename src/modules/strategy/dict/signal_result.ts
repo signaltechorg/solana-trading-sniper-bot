@@ -1,5 +1,3 @@
-import { Order } from '../../../dict/order';
-
 export interface PlaceOrder {
   side: 'long' | 'short';
   amount_currency: number;
@@ -47,7 +45,7 @@ export class SignalResult {
 
   placeBuyOrder(amountCurrency: number, price: number): void {
     this.placeOrders.push({
-      side: Order.SIDE_LONG,
+      side: 'long',
       amount_currency: amountCurrency,
       price: price
     });

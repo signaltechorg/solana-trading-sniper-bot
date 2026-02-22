@@ -1,6 +1,7 @@
 import * as ccxt from 'ccxt';
 import { Profile, Balance, OrderParams, OrderResult, OrderInfo, MarketData, Bot, BotConfig } from './types';
 import { ConfigService } from '../modules/system/config_service';
+import { ExchangeInstanceService } from '../modules/system/exchange_instance_service';
 import {
   fetchMarketData,
   placeLimitOrder,
@@ -14,7 +15,10 @@ import {
 } from './profile_order_service';
 
 export class ProfileService {
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private exchangeInstanceService: ExchangeInstanceService,
+  ) {}
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 10);
@@ -61,10 +65,12 @@ export class ProfileService {
 
     profiles[index] = updated;
     this.configService.saveProfiles(profiles);
+    this.exchangeInstanceService.invalidateProfile(id);
     return updated;
   }
 
   deleteProfile(id: string): void {
+    this.exchangeInstanceService.invalidateProfile(id);
     const profiles = this.getProfiles().filter(p => p.id !== id);
     this.configService.saveProfiles(profiles);
   }
@@ -72,17 +78,7 @@ export class ProfileService {
   // ==================== Exchange Operations ====================
 
   async fetchBalances(profile: Profile): Promise<Balance[]> {
-    const ExchangeClass = (ccxt as any)[profile.exchange];
-    if (!ExchangeClass) {
-      throw new Error(`Exchange ${profile.exchange} not supported`);
-    }
-
-    const exchange = new ExchangeClass({
-      apiKey: profile.apiKey,
-      secret: profile.secret,
-      enableRateLimit: true,
-    });
-
+    const exchange = await this.exchangeInstanceService.getProfileExchange(profile);
     const balance = await exchange.fetchBalance();
     const balances: Balance[] = [];
 
@@ -111,37 +107,21 @@ export class ProfileService {
   }
 
   /**
-   * Create a CCXT exchange instance with profile credentials
+   * Get a cached exchange instance by profile ID (1-hour TTL).
    */
-  createExchangeInstance(profile: Profile): ccxt.Exchange {
-    const ExchangeClass = (ccxt as any)[profile.exchange];
-    if (!ExchangeClass) {
-      throw new Error(`Exchange ${profile.exchange} not supported`);
-    }
-
-    return new ExchangeClass({
-      apiKey: profile.apiKey,
-      secret: profile.secret,
-      enableRateLimit: true,
-    });
-  }
-
-  /**
-   * Get exchange instance by profile ID
-   */
-  getExchangeForProfile(profileId: string): ccxt.Exchange {
+  async getExchangeForProfile(profileId: string): Promise<ccxt.Exchange> {
     const profile = this.getProfile(profileId);
     if (!profile) {
       throw new Error(`Profile ${profileId} not found`);
     }
-    return this.createExchangeInstance(profile);
+    return this.exchangeInstanceService.getProfileExchange(profile);
   }
 
   /**
    * Fetch ticker/market data for a pair
    */
   async fetchTicker(profileId: string, pair: string): Promise<MarketData> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return fetchMarketData(exchange, pair);
   }
 
@@ -149,7 +129,7 @@ export class ProfileService {
    * Fetch open orders for a profile/pair
    */
   async fetchOpenOrders(profileId: string, pair?: string): Promise<OrderInfo[]> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return fetchOpenOrdersCCXT(exchange, pair);
   }
 
@@ -157,7 +137,7 @@ export class ProfileService {
    * Fetch closed/filled orders for a profile
    */
   async fetchClosedOrders(profileId: string, limit?: number): Promise<OrderInfo[]> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return fetchClosedOrdersCCXT(exchange, undefined, limit);
   }
 
@@ -165,7 +145,7 @@ export class ProfileService {
    * Fetch all orders (open and closed) for a profile
    */
   async fetchAllOrders(profileId: string, closedLimit: number = 10): Promise<{ open: OrderInfo[]; closed: OrderInfo[] }> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     const [open, closed] = await Promise.all([
       fetchOpenOrdersCCXT(exchange),
       fetchClosedOrdersCCXT(exchange, undefined, closedLimit)
@@ -177,7 +157,7 @@ export class ProfileService {
    * Place an order (limit or market)
    */
   async placeOrder(profileId: string, params: OrderParams): Promise<OrderResult> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
 
     if (params.type === 'market') {
       return placeMarketOrder(exchange, params);
@@ -190,7 +170,7 @@ export class ProfileService {
    * Cancel an order
    */
   async cancelOrder(profileId: string, orderId: string, pair: string): Promise<any> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return cancelOrderCCXT(exchange, orderId, pair);
   }
 
@@ -198,7 +178,7 @@ export class ProfileService {
    * Fetch open swap/futures positions for a profile
    */
   async fetchOpenPositions(profileId: string): Promise<import('./types').PositionInfo[]> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return fetchOpenPositionsCCXT(exchange);
   }
 
@@ -206,7 +186,7 @@ export class ProfileService {
    * Close a swap/futures position via limit or market order
    */
   async closePosition(profileId: string, symbol: string, type: 'limit' | 'market'): Promise<any> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return closePositionCCXT(exchange, symbol, type);
   }
 
@@ -214,7 +194,7 @@ export class ProfileService {
    * Cancel all orders for a pair
    */
   async cancelAllOrders(profileId: string, pair: string): Promise<void> {
-    const exchange = this.getExchangeForProfile(profileId);
+    const exchange = await this.getExchangeForProfile(profileId);
     return cancelAllOrdersCCXT(exchange, pair);
   }
 
