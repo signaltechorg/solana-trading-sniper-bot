@@ -1,6 +1,13 @@
-import _ from 'lodash';
 import { CandlestickRepository } from '../../repository';
 import { ExchangeCandlestick } from '../../dict/exchange_candlestick';
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
 
 export class CandleImporter {
   private trottle: Record<string, ExchangeCandlestick> = {};
@@ -18,8 +25,8 @@ export class CandleImporter {
       // on init we can have a lot or REST api we can have a lot of candles
       // reduce database locking time by split them
       if (candles.length > 0) {
-        for (const chunk of _.chunk(candles, 1000)) {
-          await this.insertCandles(chunk);
+        for (const candleChunk of chunkArray(candles, 1000)) {
+          await this.insertCandles(candleChunk);
         }
       }
 

@@ -2,7 +2,6 @@ import fs from 'fs';
 import events from 'events';
 
 import { createLogger, transports, format } from 'winston';
-import _ from 'lodash';
 import Sqlite from 'better-sqlite3';
 
 import { Notify } from '../notify/notify';
@@ -33,7 +32,6 @@ import { ProfilePairService } from './profile_pair_service';
 import { BotRunner } from '../strategy/bot_runner';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import { WinstonSqliteTransport } from '../utils/winston_sqlite_transport';
-import WinstonTelegramLogger from 'winston-telegram';
 import { LogsHttp } from './system/logs_http';
 import { LogsRepository, TickerLogRepository, TickerRepository } from '../repository';
 import { CandlestickResample } from './system/candlestick_resample';
@@ -87,12 +85,6 @@ interface Config {
     telegram?: {
       token?: string;
       chat_id?: string;
-    };
-  };
-  log?: {
-    telegram?: {
-      chatId?: string;
-      token?: string;
     };
   };
   [key: string]: any;
@@ -319,15 +311,6 @@ const services: Services = {
       ]
     }) as unknown as Logger;
 
-    const config = this.getConfig();
-    const telegram = _.get(config, 'log.telegram');
-
-    if (telegram && telegram.chatId && telegram.chatId.length > 0 && telegram.token && telegram.token.length > 0 && telegram.chatId.length > 0) {
-      if (logger.add) {
-        logger.add(new WinstonTelegramLogger(telegram));
-      }
-    }
-
     return logger;
   },
 
@@ -336,17 +319,17 @@ const services: Services = {
 
     const config = this.getConfig();
 
-    const slack = _.get(config, 'notify.slack');
+    const slack = config?.notify?.slack;
     if (slack && slack.webhook && slack.webhook.length > 0) {
       notifiers.push(new Slack(slack));
     }
 
-    const mailServer = _.get(config, 'notify.mail.server');
+    const mailServer = config?.notify?.mail?.server;
     if (mailServer && mailServer.length > 0) {
       notifiers.push(new Mail(this.createMailer(), this.getSystemUtil(), this.getLogger()));
     }
 
-    const telegram = _.get(config, 'notify.telegram');
+    const telegram = config?.notify?.telegram;
     if (telegram && telegram.chat_id && telegram.chat_id.length > 0 && telegram.token && telegram.token.length > 0) {
       notifiers.push(new Telegram(this.createTelegram(), telegram, this.getLogger()));
     }

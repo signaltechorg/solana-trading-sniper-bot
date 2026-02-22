@@ -1,5 +1,3 @@
-import percent from 'percent';
-
 export interface Candlestick {
   time: number;
   open: number;
@@ -820,10 +818,11 @@ export const indicators = {
     const results: Array<{ top: number; body: number; bottom: number }> = [];
     for (const c of source) {
       const range = c.high - c.low;
+      const calcPercent = (value: number, total: number) => Math.round((value / total) * 10000) / 100;
       results.push({
-        top: Math.abs(percent.calc(c.high - Math.max(c.close, c.open), range, 2)),
-        body: Math.abs(percent.calc(c.close - c.open, range, 2)),
-        bottom: Math.abs(percent.calc(c.low - Math.min(c.close, c.open), range, 2))
+        top: Math.abs(calcPercent(c.high - Math.max(c.close, c.open), range)),
+        body: Math.abs(calcPercent(c.close - c.open, range)),
+        bottom: Math.abs(calcPercent(c.low - Math.min(c.close, c.open), range))
       });
     }
 

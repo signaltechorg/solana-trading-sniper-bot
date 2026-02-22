@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 export type OrderSide = 'long' | 'short';
 export type OrderType = 'limit' | 'stop' | 'market' | 'trailing_stop';
 
@@ -101,9 +99,7 @@ export class Order {
       price,
       amount,
       Order.TYPE_LIMIT,
-      _.merge({}, options, {
-        post_only: true
-      })
+      { ...options, post_only: true }
     );
   }
 
@@ -131,9 +127,7 @@ export class Order {
       price,
       amount,
       Order.TYPE_LIMIT,
-      _.merge({}, options, {
-        post_only: true,
-      })
+      { ...options, post_only: true }
     );
   }
 
@@ -158,9 +152,7 @@ export class Order {
       amount < 0 ? Order.SIDE_SHORT : Order.SIDE_LONG,
       0,
       amount,
-      _.merge({}, options, {
-        adjust_price: true,
-      })
+      { ...options, adjust_price: true }
     );
   }
 

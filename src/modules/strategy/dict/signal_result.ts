@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { Order } from '../../../dict/order';
 
 export interface PlaceOrder {
@@ -19,7 +18,7 @@ export class SignalResult {
   }
 
   mergeDebug(debug: Record<string, any>): void {
-    this._debug = _.merge(this._debug, debug);
+    this._debug = { ...this._debug, ...debug };
   }
 
   setSignal(signal: 'long' | 'short' | 'close'): void {
