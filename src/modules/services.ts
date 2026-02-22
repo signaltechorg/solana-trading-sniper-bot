@@ -17,7 +17,7 @@ import { SignalLogger } from './signal/signal_logger';
 import { SignalHttp } from './signal/signal_http';
 
 import { SignalRepository, CandlestickRepository } from '../repository';
-import { StrategyExecutor } from '../strategy/strategy_executor';
+import { StrategyExecutor } from './strategy/v2/typed_backtest';
 
 import { Trade } from './trade';
 import { Http } from './http';
@@ -105,7 +105,7 @@ export { DeskService } from './system/desk_service';
 export { SymbolSearchService } from './system/symbol_search_service';
 export { ProfileService } from '../profile/profile_service';
 export { ProfilePairService } from './profile_pair_service';
-export { StrategyExecutor } from '../strategy/strategy_executor';
+export { StrategyExecutor } from './strategy/v2/typed_backtest';
 export { SignalLogger } from './signal/signal_logger';
 export { FileCache } from '../utils/file_cache';
 export { BotRunner } from '../strategy/bot_runner';
@@ -544,7 +544,7 @@ const services: Services = {
   },
 
   getBacktestController: function (templateHelpers: any): BacktestController {
-    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getProfileService(), this.getV2StrategyRegistry());
+    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getProfileService(), this.getV2StrategyRegistry(), this.getStrategyExecutor());
   },
 
   getLogsController: function (templateHelpers: any): LogsController {

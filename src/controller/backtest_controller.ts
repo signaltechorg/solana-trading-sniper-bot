@@ -3,7 +3,7 @@
  */
 
 import { BaseController, TemplateHelpers } from './base_controller';
-import { TypedBacktestEngine, type BacktestResult, type BacktestSummary, type BacktestTrade, type BacktestRow } from '../modules/strategy/v2/typed_backtest';
+import { TypedBacktestEngine, StrategyExecutor, type BacktestResult, type BacktestSummary, type BacktestTrade, type BacktestRow } from '../modules/strategy/v2/typed_backtest';
 import { StrategyRegistry, type StrategyName } from '../modules/strategy/v2/strategy_registry';
 import type { Period } from '../strategy/strategy';
 import type express from 'express';
@@ -74,10 +74,11 @@ export class BacktestController extends BaseController {
     templateHelpers: TemplateHelpers,
     exchangeCandleCombine: ExchangeCandleCombine,
     private profileService: { getProfiles(): { exchange: string; bots?: { pair: string }[] }[] },
-    private strategyRegistry: StrategyRegistry
+    private strategyRegistry: StrategyRegistry,
+    strategyExecutor: StrategyExecutor
   ) {
     super(templateHelpers);
-    this.engine = new TypedBacktestEngine(exchangeCandleCombine);
+    this.engine = new TypedBacktestEngine(exchangeCandleCombine, strategyExecutor);
   }
 
   registerRoutes(router: express.Router): void {

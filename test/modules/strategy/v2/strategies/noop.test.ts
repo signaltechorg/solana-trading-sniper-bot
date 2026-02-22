@@ -33,7 +33,7 @@ describe('#Noop', () => {
   beforeEach(() => {
     const rawCandles = createCandleFixtures();
     candlesAsc = toAscOrder(toCandlestickInstances(rawCandles));
-    executor = new StrategyExecutor();
+    executor = new StrategyExecutor({} as any, {} as any, {} as any, {} as any, {} as any, {} as any);
   });
 
   describe('strategy initialization', () => {

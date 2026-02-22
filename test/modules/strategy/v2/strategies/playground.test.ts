@@ -49,7 +49,7 @@ describe('#Playground (Dynamic)', () => {
     rawCandles = createCandleFixtures();
     candlesDesc = toCandlestickInstances(rawCandles);
     candlesAsc = toAscOrder(candlesDesc);
-    executor = new StrategyExecutor();
+    executor = new StrategyExecutor({} as any, {} as any, {} as any, {} as any, {} as any, {} as any);
     registry = new StrategyRegistry();
   });
 

@@ -6,7 +6,12 @@ import { TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, ty
 import { calculateIndicators } from './indicator_calculator';
 import { convertPeriodToMinute } from '../../../utils/resample';
 import type { ExchangeCandleCombine } from '../../exchange/exchange_candle_combine';
-import type { Candlestick } from '../../../dict/candlestick';
+import { Candlestick } from '../../../dict/candlestick';
+import type { Logger } from 'winston';
+import type { TechnicalAnalysisValidator } from '../../../utils/technical_analysis_validator';
+import type { CcxtCandleWatchService } from '../../system/ccxt_candle_watch_service';
+import type { CcxtCandlePrefillService } from '../../system/ccxt_candle_prefill_service';
+import type { StrategyRegistry } from './strategy_registry';
 
 // ============== Core Signal Types (reusable for trading) ==============
 
@@ -76,6 +81,15 @@ export interface BacktestResult {
 // ============== Core Strategy Executor (reusable for trading) ==============
 
 export class StrategyExecutor {
+  constructor(
+    private technicalAnalysisValidator: TechnicalAnalysisValidator,
+    private exchangeCandleCombine: ExchangeCandleCombine,
+    private logger: Logger,
+    private ccxtCandleWatchService: CcxtCandleWatchService,
+    private ccxtCandlePrefillService: CcxtCandlePrefillService,
+    private strategyRegistry: StrategyRegistry
+  ) {}
+
   /**
    * Execute strategy on candles and return raw signals
    * This is the core method reusable for both backtesting and live trading
@@ -150,18 +164,84 @@ export class StrategyExecutor {
 
     return rows;
   }
+
+  /**
+   * Execute a strategy for live trading — fetches candles, runs strategy, returns the latest signal.
+   * Requires live trading deps to be passed to the constructor.
+   */
+  async executeStrategy(
+    strategyName: string,
+    exchange: string,
+    symbol: string,
+    period: string,
+    options: Record<string, any>
+  ): Promise<'long' | 'short' | 'close' | undefined> {
+    const StrategyClass = this.strategyRegistry.getStrategyClass(strategyName);
+
+    const periodAsMinute = convertPeriodToMinute(period) * 60;
+    const unixtime = Math.floor(Date.now() / 1000);
+    const olderThenCurrentPeriod = unixtime - (unixtime % periodAsMinute) - periodAsMinute * 0.1;
+
+    let candlesAsc: Candlestick[];
+
+    if (!this.ccxtCandleWatchService.isWatched(exchange, symbol, period)) {
+      const pairKey = `${exchange}:${symbol}:${period}`;
+      this.logger.info(`[StrategyExecutor] ${pairKey} not in websocket — fetching 500 history candles via REST`);
+      try {
+        const restCandles = await this.ccxtCandlePrefillService.fetchDirect(exchange, symbol, period);
+        candlesAsc = restCandles
+          .filter(c => c.time <= olderThenCurrentPeriod)
+          .sort((a, b) => a.time - b.time)
+          .map(c => new Candlestick(c.time, c.open, c.high, c.low, c.close, c.volume));
+      } catch (e: any) {
+        this.logger.error(`[StrategyExecutor] REST fetch failed for ${exchange}:${symbol}:${period}: ${e.message || String(e)}`);
+        return undefined;
+      }
+    } else {
+      const lookbacks = await this.exchangeCandleCombine.fetchCombinedCandles(
+        exchange,
+        symbol,
+        period,
+        [],
+        olderThenCurrentPeriod
+      );
+
+      if (!lookbacks[exchange] || lookbacks[exchange].length === 0) {
+        this.logger.info(`Strategy skipped: no candles: ${strategyName} ${exchange}:${symbol}`);
+        return undefined;
+      }
+
+      if (!this.technicalAnalysisValidator.isValidCandleStickLookback(lookbacks[exchange].slice(), period)) {
+        this.logger.info(`Strategy skipped: outdated candles: ${strategyName} ${exchange}:${symbol}`);
+        return undefined;
+      }
+
+      candlesAsc = lookbacks[exchange].slice().reverse();
+    }
+
+    if (candlesAsc.length === 0) {
+      this.logger.info(`Strategy skipped: no candles: ${strategyName} ${exchange}:${symbol}`);
+      return undefined;
+    }
+
+    if (candlesAsc[0].time > candlesAsc[candlesAsc.length - 1].time) {
+      this.logger.error(`[StrategyExecutor] ${exchange}:${symbol}:${period} candles are not in ascending order — skipping`);
+      return undefined;
+    }
+
+    const strategy = new StrategyClass(options);
+    const signalRows = await this.execute(strategy, candlesAsc);
+    return signalRows[signalRows.length - 1]?.signal;
+  }
 }
 
 // ============== Backtest Engine (backtest-specific logic) ==============
 
 export class TypedBacktestEngine {
-  private executor: StrategyExecutor;
-
   constructor(
-    private exchangeCandleCombine: ExchangeCandleCombine
-  ) {
-    this.executor = new StrategyExecutor();
-  }
+    private exchangeCandleCombine: ExchangeCandleCombine,
+    private executor: StrategyExecutor
+  ) {}
 
   /**
    * Run a backtest with pre-fetched candles

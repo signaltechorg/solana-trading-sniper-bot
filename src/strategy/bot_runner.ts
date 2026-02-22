@@ -3,7 +3,7 @@ import { Notify } from '../notify/notify';
 import { Logger } from '../modules/services';
 import { SignalLogger } from '../modules/signal/signal_logger';
 import { ProfileService } from '../profile/profile_service';
-import { StrategyExecutor } from './strategy_executor';
+import { StrategyExecutor } from '../modules/strategy/v2/typed_backtest';
 import type { Bot, Profile } from '../profile/types';
 
 /** Convert a period string (e.g. "15m", "4h", "1d") to whole minutes. */
