@@ -401,7 +401,7 @@ const services: Services = {
       return candleExportHttp;
     }
 
-    return (candleExportHttp = new CandleExportHttp(this.getCandlestickRepository(), this.getProfileService()));
+    return (candleExportHttp = new CandleExportHttp(this.getCandlestickRepository(), this.getCcxtCandleWatchService()));
   },
 
   getExchangeCandleCombine: function (): ExchangeCandleCombine {

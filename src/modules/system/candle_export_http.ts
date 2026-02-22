@@ -1,4 +1,5 @@
 import { CandlestickRepository } from '../../repository';
+import type { CcxtCandleWatchService } from './ccxt_candle_watch_service';
 
 export interface ExchangeSymbolPair {
   exchange: string;
@@ -8,7 +9,7 @@ export interface ExchangeSymbolPair {
 export class CandleExportHttp {
   constructor(
     private candlestickRepository: CandlestickRepository,
-    private profileService: { getProfiles(): { exchange: string; bots?: { pair: string }[] }[] }
+    private ccxtCandleWatchService: CcxtCandleWatchService
   ) {}
 
   async getCandles(exchange: string, symbol: string, period: string, start: Date, end: Date): Promise<any[]> {
@@ -16,11 +17,6 @@ export class CandleExportHttp {
   }
 
   async getPairs(): Promise<ExchangeSymbolPair[]> {
-    return this.profileService.getProfiles().flatMap(profile =>
-      (profile.bots ?? []).map(bot => ({
-        exchange: profile.exchange,
-        symbol: bot.pair
-      }))
-    );
+    return this.ccxtCandleWatchService.getWatchedPairs();
   }
 }
