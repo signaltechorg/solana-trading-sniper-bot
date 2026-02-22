@@ -8,6 +8,7 @@ import { StrategyRegistry, type StrategyName } from '../modules/strategy/v2/stra
 import type { Period } from '../strategy/strategy';
 import type express from 'express';
 import type { ExchangeCandleCombine } from '../modules/exchange/exchange_candle_combine';
+import type { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
 
 // Chart data format for the view
 interface CandleChartData {
@@ -73,9 +74,9 @@ export class BacktestController extends BaseController {
   constructor(
     templateHelpers: TemplateHelpers,
     exchangeCandleCombine: ExchangeCandleCombine,
-    private profileService: { getProfiles(): { exchange: string; bots?: { pair: string }[] }[] },
     private strategyRegistry: StrategyRegistry,
-    strategyExecutor: StrategyExecutor
+    strategyExecutor: StrategyExecutor,
+    private ccxtCandleWatchService: CcxtCandleWatchService
   ) {
     super(templateHelpers);
     this.engine = new TypedBacktestEngine(exchangeCandleCombine, strategyExecutor);
@@ -188,16 +189,12 @@ export class BacktestController extends BaseController {
    * Get available pairs for backtest dropdown
    */
   async getBacktestPairs(): Promise<BacktestV2Pair[]> {
-    const pairs = this.profileService.getProfiles().flatMap(profile =>
-      (profile.bots ?? []).map(bot => ({
-        name: `${profile.exchange}.${bot.pair}`,
+    return this.ccxtCandleWatchService.getWatchedPairs()
+      .map(pair => ({
+        name: `${pair.exchange}.${pair.symbol}`,
         options: ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d']
       }))
-    );
-
-    // Remove duplicates and sort
-    const uniquePairs = [...new Map(pairs.map(p => [p.name, p])).values()];
-    return uniquePairs.sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**

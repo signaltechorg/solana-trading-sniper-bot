@@ -502,7 +502,7 @@ const services: Services = {
   },
 
   getBacktestController: function (templateHelpers: any): BacktestController {
-    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getProfileService(), this.getV2StrategyRegistry(), this.getStrategyExecutor());
+    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getV2StrategyRegistry(), this.getStrategyExecutor(), this.getCcxtCandleWatchService());
   },
 
   getLogsController: function (templateHelpers: any): LogsController {

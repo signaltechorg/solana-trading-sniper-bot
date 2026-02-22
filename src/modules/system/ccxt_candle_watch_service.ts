@@ -36,6 +36,31 @@ export class CcxtCandleWatchService {
   }
 
   /**
+   * Returns all unique (exchange, symbol) pairs currently being watched via websocket.
+   * Combines pairs from dashboard config and bot configs.
+   */
+  getWatchedPairs(): { exchange: string; symbol: string }[] {
+    const pairSet = new Map<string, { exchange: string; symbol: string }>();
+
+    // Add pairs from dashboard config
+    const config = this.dashboardConfigService.getConfig();
+    for (const pair of config.pairs) {
+      const key = `${pair.exchange}:${pair.symbol}`;
+      pairSet.set(key, { exchange: pair.exchange, symbol: pair.symbol });
+    }
+
+    // Add pairs from bot configs
+    for (const profile of this.profileService.getProfiles()) {
+      for (const bot of profile.bots || []) {
+        const key = `${profile.exchange}:${bot.pair}`;
+        pairSet.set(key, { exchange: profile.exchange, symbol: bot.pair });
+      }
+    }
+
+    return Array.from(pairSet.values());
+  }
+
+  /**
    * Returns true if the given exchange+symbol+period is currently subscribed
    * via the websocket (i.e. it is present in the dashboard config or any bot config).
    */
