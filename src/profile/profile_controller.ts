@@ -3,6 +3,7 @@ import { ProfileService } from './profile_service';
 import { ProfilePairService } from '../modules/profile_pair_service';
 import { Profile } from './types';
 import { StrategyRegistry } from '../modules/strategy/v2/strategy_registry';
+import { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
 import express from 'express';
 
 export class ProfileController extends BaseController {
@@ -10,7 +11,8 @@ export class ProfileController extends BaseController {
     templateHelpers: TemplateHelpers,
     private profileService: ProfileService,
     private pairService: ProfilePairService,
-    private strategyRegistry: StrategyRegistry
+    private strategyRegistry: StrategyRegistry,
+    private ccxtCandleWatchService: CcxtCandleWatchService
   ) {
     super(templateHelpers);
   }
@@ -325,6 +327,7 @@ export class ProfileController extends BaseController {
       options: parsedOptions,
     });
 
+    this.ccxtCandleWatchService.restart();
     res.redirect('/profiles/' + id);
   }
 
@@ -352,12 +355,14 @@ export class ProfileController extends BaseController {
       options: parsedOptions,
     });
 
+    this.ccxtCandleWatchService.restart();
     res.redirect('/profiles/' + id);
   }
 
   private async deleteBot(req: express.Request, res: express.Response): Promise<void> {
     const { id, botId } = req.params;
     this.profileService.deleteBot(id, botId);
+    this.ccxtCandleWatchService.restart();
     res.redirect('/profiles/' + id);
   }
 }

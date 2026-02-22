@@ -3,6 +3,7 @@ import { CandleImporter } from './candle_importer';
 import { DashboardConfigService } from './dashboard_config_service';
 import { ExchangeCandlestick } from '../../dict/exchange_candlestick';
 import { Logger } from '../services';
+import { ProfileService } from '../../profile/profile_service';
 
 type SymbolType = 'spot' | 'swap' | 'futures';
 
@@ -25,7 +26,8 @@ export class CcxtCandleWatchService {
   constructor(
     private candleImporter: CandleImporter,
     private dashboardConfigService: DashboardConfigService,
-    private logger: Logger
+    private logger: Logger,
+    private profileService: ProfileService
   ) {}
 
   start(): void {
@@ -35,14 +37,27 @@ export class CcxtCandleWatchService {
 
   /**
    * Returns true if the given exchange+symbol+period is currently subscribed
-   * via the websocket (i.e. it is present in the dashboard config).
+   * via the websocket (i.e. it is present in the dashboard config or any bot config).
    */
   isWatched(exchange: string, symbol: string, period: string): boolean {
+    // Check dashboard config (cross-product of pairs × periods)
     const config = this.dashboardConfigService.getConfig();
-    return (
+    if (
       config.pairs.some(p => p.exchange === exchange && p.symbol === symbol) &&
       config.periods.includes(period)
-    );
+    ) {
+      return true;
+    }
+    // Check bot configs (each bot specifies a specific exchange+symbol+period triple)
+    for (const profile of this.profileService.getProfiles()) {
+      if (profile.exchange !== exchange) continue;
+      for (const bot of profile.bots || []) {
+        if (bot.pair === symbol && bot.interval === period) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -81,44 +96,55 @@ export class CcxtCandleWatchService {
   }
 
   private startSubscriptions(): void {
-    const config = this.dashboardConfigService.getConfig();
-    const { pairs, periods } = config;
+    // Collect all (exchange, symbol, period) triples from dashboard config and bots, deduped.
+    // Dashboard: cross-product of configured pairs × periods.
+    // Bots: each bot contributes one specific (profile.exchange, bot.pair, bot.interval) triple.
+    const allSubs = new Map<string, { exchange: string; symbol: string; period: string }>();
+    const addSub = (exchange: string, symbol: string, period: string): void => {
+      allSubs.set(`${exchange}\0${symbol}\0${period}`, { exchange, symbol, period });
+    };
 
-    if (pairs.length === 0 || periods.length === 0) {
+    const config = this.dashboardConfigService.getConfig();
+    for (const pair of config.pairs) {
+      for (const period of config.periods) {
+        addSub(pair.exchange, pair.symbol, period);
+      }
+    }
+
+    for (const profile of this.profileService.getProfiles()) {
+      for (const bot of profile.bots || []) {
+        addSub(profile.exchange, bot.pair, bot.interval);
+      }
+    }
+
+    if (allSubs.size === 0) {
       this.logger.info('[CcxtCandleWatch] No pairs configured, skipping subscriptions');
       return;
     }
 
-    // Group pairs by exchange + symbol type so each group gets its own ccxt.pro instance.
+    // Group by exchange + symbol type so each group gets its own ccxt.pro instance.
     // Spot, swap (perpetual), and dated futures require separate instances.
     type GroupKey = string; // "exchange:type"
-    const groups = new Map<GroupKey, { exchange: string; symbols: Set<string> }>();
+    const groups = new Map<GroupKey, { exchange: string; symbolPeriodPairs: Map<string, [string, string]> }>();
 
-    for (const { exchange, symbol } of pairs) {
+    for (const { exchange, symbol, period } of allSubs.values()) {
       const type = getSymbolType(symbol);
       const key = `${exchange}:${type}`;
       if (!groups.has(key)) {
-        groups.set(key, { exchange, symbols: new Set() });
+        groups.set(key, { exchange, symbolPeriodPairs: new Map() });
       }
-      groups.get(key)!.symbols.add(symbol);
+      groups.get(key)!.symbolPeriodPairs.set(`${symbol}\0${period}`, [symbol, period]);
     }
 
     const myGen = this.generation;
 
     for (const [, group] of groups) {
-      // Build [symbol, period] pairs for watchOHLCVForSymbols
-      const symbolPeriodPairs: [string, string][] = [];
-      for (const symbol of group.symbols) {
-        for (const period of periods) {
-          symbolPeriodPairs.push([symbol, period]);
-        }
-      }
+      const symbolPeriodPairs: [string, string][] = Array.from(group.symbolPeriodPairs.values());
       this.runWatcher(group.exchange, symbolPeriodPairs, myGen);
     }
 
-    const pairSummary = pairs.map(p => `${p.exchange}:${p.symbol}`).join(', ');
     this.logger.info(
-      `[CcxtCandleWatch] Started ${groups.size} watcher(s) for ${pairs.length} pair(s) [${pairSummary}] periods [${periods.join(', ')}], gen ${myGen}`
+      `[CcxtCandleWatch] Started ${groups.size} watcher(s) for ${allSubs.size} pair+period combination(s), gen ${myGen}`
     );
   }
 

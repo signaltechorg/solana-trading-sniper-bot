@@ -524,7 +524,7 @@ const services: Services = {
     if (ccxtCandleWatchService) {
       return ccxtCandleWatchService;
     }
-    return (ccxtCandleWatchService = new CcxtCandleWatchService(this.getCandleImporter(), this.getDashboardConfigService(), this.getLogger()));
+    return (ccxtCandleWatchService = new CcxtCandleWatchService(this.getCandleImporter(), this.getDashboardConfigService(), this.getLogger(), this.getProfileService()));
   },
 
   getTradesController: function (templateHelpers: any): TradesController {
@@ -560,7 +560,7 @@ const services: Services = {
   },
 
   getProfileController: function (templateHelpers: any): ProfileController {
-    return new ProfileController(templateHelpers, this.getProfileService(), this.getProfilePairService(), this.getV2StrategyRegistry());
+    return new ProfileController(templateHelpers, this.getProfileService(), this.getProfilePairService(), this.getV2StrategyRegistry(), this.getCcxtCandleWatchService());
   },
 
   getSettingsController: function (templateHelpers: any): SettingsController {
