@@ -171,8 +171,5 @@ export class Http {
 
     // Start live WebSocket candle subscriptions for dashboard pairs
     this.services.getCcxtCandleWatchService().start();
-
-    // Start period-close bot runner (fires ~8s after each candle close)
-    this.services.getBotRunner().start();
   }
 }

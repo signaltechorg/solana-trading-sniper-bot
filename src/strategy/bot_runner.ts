@@ -30,6 +30,8 @@ function isFuturesPair(pair: string): boolean {
 }
 
 export class BotRunner {
+  private started = false;
+
   constructor(
     private readonly profileService: ProfileService,
     private readonly strategyExecutor: StrategyExecutor,
@@ -49,6 +51,8 @@ export class BotRunner {
    * Examples at minute 15:  1m ✓  3m ✓  5m ✓  15m ✓  30m ✗  1h ✗
    */
   start(): void {
+    if (this.started) return;
+    this.started = true;
     const oneMinuteMs = 60_000;
     const now = Date.now();
     const nextBoundary = Math.ceil(now / oneMinuteMs) * oneMinuteMs;
