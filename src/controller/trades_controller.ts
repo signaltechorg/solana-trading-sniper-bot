@@ -12,48 +12,54 @@ export class TradesController extends BaseController {
   }
 
   private async getTradesData() {
-    const openOrders: any[] = [];
-    const profilePositions: any[] = [];
+    // Fetch open orders and swap/futures positions from all profiles in parallel
+    const profiles = this.profileService.getProfiles().filter(p => p.apiKey && p.secret);
 
-    // Fetch open orders and swap/futures positions from all profiles
-    const profiles = this.profileService.getProfiles();
-    for (const profile of profiles) {
-      if (!profile.apiKey || !profile.secret) {
-        continue;
-      }
-
-      // Fetch open orders
-      try {
-        const orders = await this.profileService.fetchOpenOrders(profile.id);
-
-        orders.forEach((order: OrderInfo) => {
-          openOrders.push({
+    // Create all fetch promises
+    const fetchPromises = profiles.flatMap(profile => [
+      this.profileService
+        .fetchOpenOrders(profile.id)
+        .then(orders =>
+          orders.map((order: OrderInfo) => ({
             profileId: profile.id,
             profileName: profile.name,
             exchange: profile.exchange,
             order
-          });
-        });
-      } catch (e) {
-        console.log(`Failed to fetch orders for profile ${profile.name}: ${String(e)}`);
-      }
-
-      // Fetch swap/futures positions
-      try {
-        const ppos = await this.profileService.fetchOpenPositions(profile.id);
-
-        ppos.forEach((position: PositionInfo) => {
-          profilePositions.push({
+          }))
+        )
+        .catch(e => {
+          console.log(`Failed to fetch orders for profile ${profile.name}: ${String(e)}`);
+          return [];
+        }),
+      this.profileService
+        .fetchOpenPositions(profile.id)
+        .then(positions =>
+          positions.map((position: PositionInfo) => ({
             profileId: profile.id,
             profileName: profile.name,
             exchange: profile.exchange,
             position
-          });
-        });
-      } catch (e) {
-        console.log(`Failed to fetch positions for profile ${profile.name}: ${String(e)}`);
+          }))
+        )
+        .catch(e => {
+          console.log(`Failed to fetch positions for profile ${profile.name}: ${String(e)}`);
+          return [];
+        })
+    ]);
+
+    // Execute all requests in parallel
+    const results = await Promise.all(fetchPromises);
+
+    // Separate orders and positions from results (alternating in array)
+    const openOrders: any[] = [];
+    const profilePositions: any[] = [];
+    results.forEach((result, index) => {
+      if (index % 2 === 0) {
+        openOrders.push(...result);
+      } else {
+        profilePositions.push(...result);
       }
-    }
+    });
 
     // Sort by timestamp descending
     openOrders.sort((a, b) => (b.order.timestamp || 0) - (a.order.timestamp || 0));
@@ -85,11 +91,7 @@ export class TradesController extends BaseController {
       const { symbol, type } = req.body;
 
       try {
-        await this.profileService.closePosition(
-          profileId,
-          decodeURIComponent(symbol),
-          type as 'limit' | 'market'
-        );
+        await this.profileService.closePosition(profileId, decodeURIComponent(symbol), type as 'limit' | 'market');
       } catch (e) {
         console.log(`Failed to close position ${symbol} for profile ${profileId}: ${String(e)}`);
       }
