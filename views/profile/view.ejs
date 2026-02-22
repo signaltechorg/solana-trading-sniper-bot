@@ -271,6 +271,7 @@ function loadBalances() {
                             <th class="text-right py-3 px-4 font-medium text-gray-600">Total</th>
                             <th class="text-right py-3 px-4 font-medium text-gray-600">Free</th>
                             <th class="text-right py-3 px-4 font-medium text-gray-600">Used</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-600">USD Value</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -283,6 +284,7 @@ function loadBalances() {
                         <td class="py-3 px-4 text-right">${formatBalance(b.total)}</td>
                         <td class="py-3 px-4 text-right text-gray-500">${formatBalance(b.free)}</td>
                         <td class="py-3 px-4 text-right text-gray-500">${formatBalance(b.used)}</td>
+                        <td class="py-3 px-4 text-right">${b.usdValue ? '$' + b.usdValue.toFixed(2) : '-'}</td>
                     </tr>
                 `;
             });

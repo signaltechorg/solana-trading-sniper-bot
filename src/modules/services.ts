@@ -34,6 +34,7 @@ import { LogsHttp } from './system/logs_http';
 import { LogsRepository, TickerLogRepository, TickerRepository } from '../repository';
 import { QueueManager } from '../utils/queue';
 import { FileCache } from '../utils/file_cache';
+import { BinancePriceService } from '../utils/binance_price_service';
 
 import { ExchangeCandleCombine } from './exchange/exchange_candle_combine';
 import { ExchangeInstanceService } from './system/exchange_instance_service';
@@ -105,6 +106,7 @@ export { StrategyExecutor } from './strategy/v2/typed_backtest';
 export { FileCache } from '../utils/file_cache';
 export { BotRunner } from '../strategy/bot_runner';
 export { ExchangeInstanceService } from './system/exchange_instance_service';
+export { BinancePriceService } from '../utils/binance_price_service';
 
 let db: Sqlite.Database | undefined;
 let config: Config;
@@ -140,6 +142,7 @@ let profilePairService: ProfilePairService;
 let fileCache: FileCache;
 let botRunner: BotRunner;
 let exchangeInstanceService: ExchangeInstanceService;
+let binancePriceService: BinancePriceService;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -195,6 +198,7 @@ export interface Services {
   getV2StrategyRegistry(): StrategyRegistry;
   getFileCache(): FileCache;
   getBotRunner(): BotRunner;
+  getBinancePriceService(): BinancePriceService;
 }
 
 const services: Services = {
@@ -543,7 +547,7 @@ const services: Services = {
       return profileService;
     }
 
-    return (profileService = new ProfileService(this.getSystemUtil(), this.getExchangeInstanceService()));
+    return (profileService = new ProfileService(this.getSystemUtil(), this.getExchangeInstanceService(), this.getBinancePriceService()));
   },
 
   getProfilePairService: function (): ProfilePairService {
@@ -610,6 +614,14 @@ const services: Services = {
       this.getSignalRepository(),
       this.getLogger()
     ));
+  },
+
+  getBinancePriceService: function (): BinancePriceService {
+    if (binancePriceService) {
+      return binancePriceService;
+    }
+
+    return (binancePriceService = new BinancePriceService(this.getFileCache()));
   }
 };
 

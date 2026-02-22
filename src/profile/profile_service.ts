@@ -2,6 +2,7 @@ import * as ccxt from 'ccxt';
 import { Profile, Balance, OrderParams, OrderResult, OrderInfo, MarketData, Bot, BotConfig } from './types';
 import { ConfigService } from '../modules/system/config_service';
 import { ExchangeInstanceService } from '../modules/system/exchange_instance_service';
+import { BinancePriceService } from '../utils/binance_price_service';
 import {
   fetchMarketData,
   placeLimitOrder,
@@ -18,6 +19,7 @@ export class ProfileService {
   constructor(
     private configService: ConfigService,
     private exchangeInstanceService: ExchangeInstanceService,
+    private binancePriceService: BinancePriceService,
   ) {}
 
   private generateId(): string {
@@ -82,21 +84,42 @@ export class ProfileService {
     const balance = await exchange.fetchBalance();
     const balances: Balance[] = [];
 
+    // Get USDT prices from Binance (cached for 1 hour)
+    let usdtPrices: Record<string, number> | undefined;
+    try {
+      usdtPrices = await this.binancePriceService.getUsdtPrices();
+    } catch (error) {
+      console.error('Failed to fetch USDT prices:', error);
+    }
+
     for (const [currency, b] of Object.entries<any>(balance)) {
       if (currency === 'info' || currency === 'timestamp' || currency === 'datetime' || currency === 'free' || currency === 'used' || currency === 'total') {
         continue;
       }
       if (b && typeof b.total === 'number' && b.total > 0) {
-        balances.push({
+        const balanceEntry: Balance = {
           currency,
           total: b.total,
           free: b.free || 0,
           used: b.used || 0,
-        });
+        };
+
+        // Add USD value for non-USDT coins
+        if (currency !== 'USDT' && usdtPrices) {
+          const usdtPrice = usdtPrices[currency];
+          if (usdtPrice) {
+            balanceEntry.usdValue = b.total * usdtPrice;
+          }
+        } else if (currency === 'USDT') {
+          // USDT is already in USD
+          balanceEntry.usdValue = b.total;
+        }
+
+        balances.push(balanceEntry);
       }
     }
 
-    return balances.sort((a, b) => b.total - a.total);
+    return balances.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0));
   }
 
   getSupportedExchanges(): string[] {

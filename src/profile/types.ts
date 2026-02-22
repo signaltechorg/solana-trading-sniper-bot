@@ -12,6 +12,7 @@ export interface Balance {
   total: number;
   free: number;
   used: number;
+  usdValue?: number;
 }
 
 export interface Config {
