@@ -1,7 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import * as ccxt from 'ccxt';
-import { Profile, Balance, Config, OrderParams, OrderResult, OrderInfo, MarketData, Bot, BotConfig } from './types';
+import { Profile, Balance, OrderParams, OrderResult, OrderInfo, MarketData, Bot, BotConfig } from './types';
+import { ConfigService } from '../modules/system/config_service';
 import {
   fetchMarketData,
   placeLimitOrder,
@@ -15,47 +14,24 @@ import {
 } from './profile_order_service';
 
 export class ProfileService {
-  private configPath: string;
-
-  constructor() {
-    this.configPath = path.join(process.cwd(), 'var', 'config.json');
-  }
-
-  private readConfig(): Config {
-    if (fs.existsSync(this.configPath)) {
-      try {
-        const content = fs.readFileSync(this.configPath, 'utf8');
-        return JSON.parse(content);
-      } catch (e) {
-        console.error('Error reading config:', e);
-      }
-    }
-    return { profiles: [] };
-  }
-
-  private writeConfig(config: Config): void {
-    const varDir = path.dirname(this.configPath);
-    if (!fs.existsSync(varDir)) {
-      fs.mkdirSync(varDir, { recursive: true });
-    }
-    fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
-  }
+  constructor(private configService: ConfigService) {}
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 10);
   }
 
+  // ==================== Profile Management ====================
+
   getProfiles(): Profile[] {
-    return this.readConfig().profiles;
+    return this.configService.getProfiles();
   }
 
   getProfile(id: string): Profile | undefined {
-    const config = this.readConfig();
-    return config.profiles.find((p) => p.id === id);
+    return this.getProfiles().find(p => p.id === id);
   }
 
   createProfile(data: Partial<Profile>): Profile {
-    const config = this.readConfig();
+    const profiles = this.getProfiles();
     const profile: Profile = {
       id: data.id || this.generateId(),
       name: data.name || '',
@@ -63,33 +39,37 @@ export class ProfileService {
       apiKey: data.apiKey,
       secret: data.secret,
     };
-    config.profiles.push(profile);
-    this.writeConfig(config);
+    profiles.push(profile);
+    this.configService.saveProfiles(profiles);
     return profile;
   }
 
   updateProfile(id: string, data: Partial<Profile>): Profile {
-    const config = this.readConfig();
-    const index = config.profiles.findIndex((p) => p.id === id);
+    const profiles = this.getProfiles();
+    const index = profiles.findIndex(p => p.id === id);
+
     if (index === -1) {
       throw new Error(`Profile with id ${id} not found`);
     }
-    const existing = config.profiles[index];
+
+    const existing = profiles[index];
     const updated: Profile = {
       ...existing,
       ...data,
       id: existing.id,
     };
-    config.profiles[index] = updated;
-    this.writeConfig(config);
+
+    profiles[index] = updated;
+    this.configService.saveProfiles(profiles);
     return updated;
   }
 
   deleteProfile(id: string): void {
-    const config = this.readConfig();
-    config.profiles = config.profiles.filter((p) => p.id !== id);
-    this.writeConfig(config);
+    const profiles = this.getProfiles().filter(p => p.id !== id);
+    this.configService.saveProfiles(profiles);
   }
+
+  // ==================== Exchange Operations ====================
 
   async fetchBalances(profile: Profile): Promise<Balance[]> {
     const ExchangeClass = (ccxt as any)[profile.exchange];
@@ -129,8 +109,6 @@ export class ProfileService {
       return typeof value === 'function' && key !== 'version' && key !== 'pro' && key[0] === key[0].toLowerCase();
     }).sort();
   }
-
-  // Order-related methods
 
   /**
    * Create a CCXT exchange instance with profile credentials
@@ -240,30 +218,20 @@ export class ProfileService {
     return cancelAllOrdersCCXT(exchange, pair);
   }
 
-  // Bot management methods
+  // ==================== Bot Management ====================
 
-  /**
-   * Get all bots for a profile
-   */
   getBots(profileId: string): Bot[] {
     const profile = this.getProfile(profileId);
     return profile?.bots || [];
   }
 
-  /**
-   * Get a specific bot by ID
-   */
   getBot(profileId: string, botId: string): Bot | undefined {
-    const bots = this.getBots(profileId);
-    return bots.find(b => b.id === botId);
+    return this.getBots(profileId).find(b => b.id === botId);
   }
 
-  /**
-   * Create a new bot for a profile
-   */
   createBot(profileId: string, config: BotConfig): Bot {
-    const configData = this.readConfig();
-    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+    const profiles = this.getProfiles();
+    const profileIndex = profiles.findIndex(p => p.id === profileId);
 
     if (profileIndex === -1) {
       throw new Error(`Profile with id ${profileId} not found`);
@@ -281,28 +249,25 @@ export class ProfileService {
       options: config.options,
     };
 
-    if (!configData.profiles[profileIndex].bots) {
-      configData.profiles[profileIndex].bots = [];
+    if (!profiles[profileIndex].bots) {
+      profiles[profileIndex].bots = [];
     }
 
-    configData.profiles[profileIndex].bots!.push(bot);
-    this.writeConfig(configData);
+    profiles[profileIndex].bots!.push(bot);
+    this.configService.saveProfiles(profiles);
 
     return bot;
   }
 
-  /**
-   * Update a bot's configuration
-   */
   updateBot(profileId: string, botId: string, updates: Partial<BotConfig>): Bot {
-    const configData = this.readConfig();
-    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+    const profiles = this.getProfiles();
+    const profileIndex = profiles.findIndex(p => p.id === profileId);
 
     if (profileIndex === -1) {
       throw new Error(`Profile with id ${profileId} not found`);
     }
 
-    const bots = configData.profiles[profileIndex].bots || [];
+    const bots = profiles[profileIndex].bots || [];
     const botIndex = bots.findIndex(b => b.id === botId);
 
     if (botIndex === -1) {
@@ -323,31 +288,22 @@ export class ProfileService {
       options: updates.options !== undefined ? updates.options : existingBot.options,
     };
 
-    configData.profiles[profileIndex].bots![botIndex] = updatedBot;
-    this.writeConfig(configData);
+    profiles[profileIndex].bots![botIndex] = updatedBot;
+    this.configService.saveProfiles(profiles);
 
     return updatedBot;
   }
 
-  /**
-   * Delete a bot
-   */
   deleteBot(profileId: string, botId: string): void {
-    const configData = this.readConfig();
-    const profileIndex = configData.profiles.findIndex(p => p.id === profileId);
+    const profiles = this.getProfiles();
+    const profileIndex = profiles.findIndex(p => p.id === profileId);
 
     if (profileIndex === -1) {
       throw new Error(`Profile with id ${profileId} not found`);
     }
 
-    const bots = configData.profiles[profileIndex].bots || [];
-    const botIndex = bots.findIndex(b => b.id === botId);
-
-    if (botIndex === -1) {
-      throw new Error(`Bot with id ${botId} not found`);
-    }
-
-    configData.profiles[profileIndex].bots = bots.filter(b => b.id !== botId);
-    this.writeConfig(configData);
+    const bots = profiles[profileIndex].bots || [];
+    profiles[profileIndex].bots = bots.filter(b => b.id !== botId);
+    this.configService.saveProfiles(profiles);
   }
 }

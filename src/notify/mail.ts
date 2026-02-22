@@ -1,11 +1,11 @@
 import type { Logger } from '../modules/services';
-import type { SystemUtil } from '../modules/system/system_util';
+import type { ConfigService } from '../modules/system/config_service';
 
 export class Mail {
-  constructor(private mailer: any, private systemUtil: SystemUtil, private logger: Logger) {}
+  constructor(private mailer: any, private configService: ConfigService, private logger: Logger) {}
 
   send(message: string): void {
-    const to = this.systemUtil.getConfig('notify.mail.to');
+    const to = this.configService.getConfig('notify.mail.to');
     if (!to) {
       this.logger.error('No mail "to" address given');
 

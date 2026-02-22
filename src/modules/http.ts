@@ -5,7 +5,7 @@ import auth from 'basic-auth';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import path from 'path';
-import { SystemUtil } from './system/system_util';
+import { ConfigService } from './system/config_service';
 import { Services } from './services';
 import { TemplateHelpers } from '../controller';
 
@@ -13,7 +13,7 @@ export class Http {
   private readonly templateHelpers: TemplateHelpers;
 
   constructor(
-    private systemUtil: SystemUtil,
+    private systemUtil: ConfigService,
     private readonly projectDir: string,
     private services: Services
   ) {
@@ -153,6 +153,7 @@ export class Http {
     this.services.getDesksController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getCcxtExchangesController(this.templateHelpers).registerRoutes(mainRouter);
     this.services.getProfileController(this.templateHelpers).registerRoutes(mainRouter);
+    this.services.getSettingsController(this.templateHelpers).registerRoutes(mainRouter);
 
     // Mount the main router at root
     app.use('/', mainRouter);

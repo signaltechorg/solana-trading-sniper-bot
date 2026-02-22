@@ -22,8 +22,7 @@ import { StrategyExecutor } from '../strategy/strategy_executor';
 import { Trade } from './trade';
 import { Http } from './http';
 
-import { PairConfig } from './pairs/pair_config';
-import { SystemUtil } from './system/system_util';
+import { ConfigService } from './system/config_service';
 import { DeskService } from './system/desk_service';
 import { DashboardConfigService } from './system/dashboard_config_service';
 import { CcxtCandlePrefillService } from './system/ccxt_candle_prefill_service';
@@ -57,6 +56,7 @@ import { DesksController } from '../controller';
 import { CcxtExchangesController } from '../controller';
 import { DashboardSettingsController } from '../controller';
 import { ProfileController } from '../controller';
+import { SettingsController } from '../controller';
 
 // V2 Strategies
 import { DcaDipper } from '../strategy/strategies/dca_dipper/dca_dipper';
@@ -73,11 +73,6 @@ import { Noop as NoopStrategy } from '../strategy/strategies/noop';
 import { StrategyRegistry } from './strategy/v2/strategy_registry';
 
 // Interfaces
-interface Instances {
-  init?: () => Promise<void>;
-  [key: string]: any;
-}
-
 interface Config {
   notify?: {
     slack?: {
@@ -108,7 +103,7 @@ interface Parameters {
 }
 
 export type Logger = ReturnType<typeof createLogger>;
-export { SystemUtil } from './system/system_util';
+export { ConfigService } from './system/config_service';
 export { Tickers } from '../storage/tickers';
 export { LogsRepository, TickerLogRepository } from '../repository';
 export { DeskService } from './system/desk_service';
@@ -117,12 +112,10 @@ export { ProfileService } from '../profile/profile_service';
 export { ProfilePairService } from './profile_pair_service';
 export { StrategyExecutor } from '../strategy/strategy_executor';
 export { SignalLogger } from './signal/signal_logger';
-export { PairConfig } from './pairs/pair_config';
 export { FileCache } from '../utils/file_cache';
 export { BotRunner } from '../strategy/bot_runner';
 
 let db: Sqlite.Database | undefined;
-let instances: Instances;
 let config: Config;
 let ta: Ta;
 let eventEmitter: events.EventEmitter;
@@ -141,7 +134,7 @@ let candlestickRepository: CandlestickRepository;
 
 let strategyExecutor: StrategyExecutor;
 
-let systemUtil: SystemUtil;
+let systemUtil: ConfigService;
 let technicalAnalysisValidator: TechnicalAnalysisValidator;
 let logsHttp: LogsHttp;
 let logsRepository: LogsRepository;
@@ -150,7 +143,6 @@ let candlestickResample: CandlestickResample;
 let exchangeCandleCombine: ExchangeCandleCombine;
 let candleExportHttp: CandleExportHttp;
 let tickerRepository: TickerRepository;
-let pairConfig: PairConfig;
 let deskService: DeskService;
 let dashboardConfigService: DashboardConfigService;
 let ccxtCandlePrefillService: CcxtCandlePrefillService;
@@ -181,8 +173,7 @@ export interface Services {
   getTickers(): Tickers;
   getStrategyExecutor(): StrategyExecutor;
   createWebserverInstance(): Http;
-  getPairConfig(): PairConfig;
-  getSystemUtil(): SystemUtil;
+  getSystemUtil(): ConfigService;
   getTechnicalAnalysisValidator(): TechnicalAnalysisValidator;
   getLogsRepository(): LogsRepository;
   getLogsHttp(): LogsHttp;
@@ -195,7 +186,6 @@ export interface Services {
   createTradeInstance(): Trade;
   createMailer(): any;
   createTelegram(): any;
-  getInstances(): Instances;
   getConfig(): Config;
   // Controllers
   getDashboardController(templateHelpers: any): DashboardController;
@@ -212,6 +202,7 @@ export interface Services {
   getDesksController(templateHelpers: any): DesksController;
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getProfileController(templateHelpers: any): ProfileController;
+  getSettingsController(templateHelpers: any): SettingsController;
   getProfileService(): ProfileService;
   getProfilePairService(): ProfilePairService;
   getDeskService(): DeskService;
@@ -225,21 +216,11 @@ const services: Services = {
   boot: async function (projectDir: string): Promise<void> {
     parameters.projectDir = projectDir;
 
+    // Load config if exists, otherwise use empty config
     try {
-      instances = require(`${parameters.projectDir}/instance`);
-    } catch (e) {
-      throw new Error(`Invalid instance.js file. Please check: ${String(e)}`);
-    }
-
-    // boot instance eg to load pairs external
-    if (typeof instances.init === 'function') {
-      await instances.init();
-    }
-
-    try {
-      config = JSON.parse(fs.readFileSync(`${parameters.projectDir}/conf.json`, 'utf8'));
-    } catch (e) {
-      throw new Error(`Invalid conf.json file. Please check: ${String(e)}`);
+      config = JSON.parse(fs.readFileSync(`${parameters.projectDir}/var/conf.json`, 'utf8'));
+    } catch {
+      config = {};
     }
 
     this.getDatabase();
@@ -397,20 +378,12 @@ const services: Services = {
     return new Http(this.getSystemUtil(), parameters.projectDir, this);
   },
 
-  getPairConfig: function (): PairConfig {
-    if (pairConfig) {
-      return pairConfig;
-    }
-
-    return (pairConfig = new PairConfig(this.getInstances()));
-  },
-
-  getSystemUtil: function (): SystemUtil {
+  getSystemUtil: function (): ConfigService {
     if (systemUtil) {
       return systemUtil;
     }
 
-    return (systemUtil = new SystemUtil(this.getConfig()));
+    return (systemUtil = new ConfigService(parameters.projectDir));
   },
 
   getTechnicalAnalysisValidator: function (): TechnicalAnalysisValidator {
@@ -474,7 +447,7 @@ const services: Services = {
       return candleExportHttp;
     }
 
-    return (candleExportHttp = new CandleExportHttp(this.getCandlestickRepository(), this.getPairConfig()));
+    return (candleExportHttp = new CandleExportHttp(this.getCandlestickRepository(), this.getProfileService()));
   },
 
   getExchangeCandleCombine: function (): ExchangeCandleCombine {
@@ -524,10 +497,6 @@ const services: Services = {
     return new Telegraf(token);
   },
 
-  getInstances: (): Instances => {
-    return instances;
-  },
-
   getConfig: (): Config => {
     return config;
   },
@@ -545,7 +514,7 @@ const services: Services = {
     if (dashboardConfigService) {
       return dashboardConfigService;
     }
-    return (dashboardConfigService = new DashboardConfigService());
+    return (dashboardConfigService = new DashboardConfigService(this.getSystemUtil()));
   },
 
   getCcxtCandlePrefillService: function (): CcxtCandlePrefillService {
@@ -579,7 +548,7 @@ const services: Services = {
   },
 
   getBacktestController: function (templateHelpers: any): BacktestController {
-    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getInstances(), this.getV2StrategyRegistry());
+    return new BacktestController(templateHelpers, this.getExchangeCandleCombine(), this.getProfileService(), this.getV2StrategyRegistry());
   },
 
   getLogsController: function (templateHelpers: any): LogsController {
@@ -598,12 +567,16 @@ const services: Services = {
     return new ProfileController(templateHelpers, this.getProfileService(), this.getProfilePairService(), this.getV2StrategyRegistry());
   },
 
+  getSettingsController: function (templateHelpers: any): SettingsController {
+    return new SettingsController(templateHelpers, this.getSystemUtil());
+  },
+
   getProfileService: function (): ProfileService {
     if (profileService) {
       return profileService;
     }
 
-    return (profileService = new ProfileService());
+    return (profileService = new ProfileService(this.getSystemUtil()));
   },
 
   getProfilePairService: function (): ProfilePairService {

@@ -1,8 +1,0 @@
-const c = (module.exports = {});
-
-c.symbols = [];
-
-c.init = async () => {
-  // Symbols are no longer needed here
-  // Use the Profile system (var/config.json) to configure bots
-};

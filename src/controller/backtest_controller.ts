@@ -72,8 +72,8 @@ export class BacktestController extends BaseController {
 
   constructor(
     templateHelpers: TemplateHelpers,
-    private exchangeCandleCombine: ExchangeCandleCombine,
-    private instances: { symbols: { exchange: string; symbol: string }[] },
+    exchangeCandleCombine: ExchangeCandleCombine,
+    private profileService: { getProfiles(): { exchange: string; bots?: { pair: string }[] }[] },
     private strategyRegistry: StrategyRegistry
   ) {
     super(templateHelpers);
@@ -187,12 +187,16 @@ export class BacktestController extends BaseController {
    * Get available pairs for backtest dropdown
    */
   async getBacktestPairs(): Promise<BacktestV2Pair[]> {
-    const pairs = this.instances.symbols.map(symbol => ({
-      name: `${symbol.exchange}.${symbol.symbol}`,
-      options: ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d']
-    }));
+    const pairs = this.profileService.getProfiles().flatMap(profile =>
+      (profile.bots ?? []).map(bot => ({
+        name: `${profile.exchange}.${bot.pair}`,
+        options: ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d']
+      }))
+    );
 
-    return pairs.sort((a, b) => a.name.localeCompare(b.name));
+    // Remove duplicates and sort
+    const uniquePairs = [...new Map(pairs.map(p => [p.name, p])).values()];
+    return uniquePairs.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**

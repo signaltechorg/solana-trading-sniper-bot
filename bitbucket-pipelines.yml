@@ -1,7 +1,0 @@
-image: node:20
-pipelines:
-  default:
-    - step:
-        script:
-          - npm install
-          - npm test

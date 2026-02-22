@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SystemUtil } from './system_util';
+import { ConfigService } from './config_service';
 
 export class DeskService {
   private desksFilePath: string;
 
-  constructor(private systemUtil: SystemUtil) {
+  constructor(private configService: ConfigService) {
     this.desksFilePath = path.join(process.cwd(), 'var', 'desks.json');
   }
 
@@ -20,7 +20,7 @@ export class DeskService {
       }
     }
     // Fallback to main config
-    return this.systemUtil.getConfig('desks', []);
+    return this.configService.getConfig('desks', []);
   }
 
   getDeskNames(): string[] {
