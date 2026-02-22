@@ -8,11 +8,6 @@
       "email": "daniel@espendiller.net",
       "name": "Daniel Espendiller",
       "url": "http://espend.de/"
-    },
-    {
-      "email": "phuc@nguyenminhphuc.com",
-      "name": "Phuc Nguyen Minh",
-      "url": "https://nguyenminhphuc.com/"
     }
   ],
   "bin": {
@@ -29,8 +24,6 @@
     "express": "5.2.1",
     "express-ejs-layouts": "^2.5.1",
     "flat-cache": "^6.1.20",
-    "http": "^0.0.1-security",
-    "mocha": "^11.7.5",
     "moment": "^2.30.1",
     "nodemailer": "^8.0.1",
     "queue-promise": "^2.2.1",
@@ -85,6 +78,7 @@
     "@types/mocha": "^10.0.10",
     "@types/request": "^2.48.13",
     "esbuild": "^0.27.3",
+    "mocha": "^11.7.5",
     "eslint": "^9.22.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",
