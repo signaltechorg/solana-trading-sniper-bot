@@ -7,7 +7,39 @@
  */
 
 import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type MacdResult } from '../strategy';
-import { getPivotPoints } from '../../utils/technical_analysis';
+
+interface PivotPointsResult {
+  high?: number;
+  low?: number;
+}
+
+function getPivotPoints(prices: number[], left: number, right: number): PivotPointsResult {
+  if (left + right + 1 > prices.length || left <= 1 || right < 0) {
+    return {};
+  }
+
+  const range = prices.slice(-(left + right + 1));
+  const middleValue = range[left];
+  const result: PivotPointsResult = {};
+  const leftRange = range.slice(0, left);
+  const rightRange = range.slice(-right);
+
+  if (
+    typeof leftRange.find(c => c > middleValue) === 'undefined' &&
+    typeof rightRange.find(c => c > middleValue) === 'undefined'
+  ) {
+    result.high = middleValue;
+  }
+
+  if (
+    typeof leftRange.find(c => c < middleValue) === 'undefined' &&
+    typeof rightRange.find(c => c < middleValue) === 'undefined'
+  ) {
+    result.low = middleValue;
+  }
+
+  return result;
+}
 
 // ============== Strategy Options ==============
 

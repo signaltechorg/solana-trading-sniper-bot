@@ -68,7 +68,54 @@ interface TalibModule {
 // Lazy load modules
 const getTalib = (): TalibModule => require('talib');
 const getTechnicalIndicators = (): typeof import('technicalindicators') => require('technicalindicators');
-const getTechnicalAnalysis = () => require('./technical_analysis');
+
+interface PivotPointsWithWicksResult {
+  high?: { close?: number; high?: number };
+  low?: { close?: number; low?: number };
+}
+
+function candles2MarketData(
+  candles: CandleSource,
+  length: number = 1000,
+  keys: string[] = ['open', 'close', 'high', 'low', 'volume']
+): Record<string, number[]> {
+  return keys.reduce((acc, k) => ({ ...acc, [k]: candles.slice(-length).map(c => (c as any)[k]) }), {} as Record<string, number[]>);
+}
+
+function getPivotPointsWithWicks(candles: CandleSource, left: number, right: number): PivotPointsWithWicksResult {
+  if (left + right + 1 > candles.length || left <= 1 || right < 0) {
+    return {};
+  }
+
+  const range = candles.slice(-(left + right + 1));
+  const result: PivotPointsWithWicksResult = {};
+
+  for (const source of ['close', 'high', 'low']) {
+    const middleValue = range[left][source as keyof Candlestick];
+    const leftRange = range.slice(0, left);
+    const rightRange = range.slice(-right);
+
+    if (
+      ['close', 'high'].includes(source) &&
+      typeof leftRange.find(c => (c as any)[source] > middleValue) === 'undefined' &&
+      typeof rightRange.find(c => (c as any)[source] >= middleValue) === 'undefined'
+    ) {
+      if (!result.high) result.high = {};
+      result.high[source as 'close' | 'high'] = middleValue as number;
+    }
+
+    if (
+      ['close', 'low'].includes(source) &&
+      typeof leftRange.find(c => (c as any)[source] < middleValue) === 'undefined' &&
+      typeof rightRange.find(c => (c as any)[source] <= middleValue) === 'undefined'
+    ) {
+      if (!result.low) result.low = {};
+      result.low[source as 'close' | 'low'] = middleValue as number;
+    }
+  }
+
+  return result;
+}
 
 /**
  * Execute talib synchronously (talib now supports sync calls)
@@ -717,14 +764,13 @@ export const indicators = {
     const length = (options.length as number) || 200;
     const ranges = (options.ranges as number) || 14;
 
-    const { candles2MarketData } = getTechnicalAnalysis();
     const { VolumeProfile } = getTechnicalIndicators();
 
     return {
       [indicator.key]: new VolumeProfile({
         ...candles2MarketData(source, length),
         noOfBars: ranges
-      }).getResult()
+      } as any).getResult()
     };
   },
 
@@ -780,7 +826,6 @@ export const indicators = {
     const spanPeriod = (options.spanPeriod as number) || 52;
     const displacement = (options.displacement as number) || 26;
 
-    const { candles2MarketData } = getTechnicalAnalysis();
     const { IchimokuCloud } = getTechnicalIndicators();
 
     return {
@@ -790,7 +835,7 @@ export const indicators = {
         basePeriod,
         spanPeriod,
         displacement
-      }).getResult()
+      } as any).getResult()
     };
   },
 
@@ -800,7 +845,6 @@ export const indicators = {
     const left = (options.left as number) || 5;
     const right = (options.right as number) || 5;
 
-    const { getPivotPointsWithWicks } = getTechnicalAnalysis();
     const result: any[] = [];
 
     for (let i = 0; i < source.length; i++) {

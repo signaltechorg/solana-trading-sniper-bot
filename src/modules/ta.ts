@@ -1,10 +1,30 @@
 import moment from 'moment';
-import {
-  getTrendingDirectionLastItem,
-  getCrossedSince,
-  getBollingerBandPercent,
-  getTrendingDirection
-} from '../utils/technical_analysis';
+function getBollingerBandPercent(currentPrice: number, upper: number, lower: number): number {
+  return (currentPrice - lower) / (upper - lower);
+}
+
+function getTrendingDirection(lookbacks: number[]): string {
+  const currentValue = lookbacks.slice(-1)[0];
+  return (lookbacks[lookbacks.length - 2] + lookbacks[lookbacks.length - 3] + lookbacks[lookbacks.length - 4]) / 3 >
+    currentValue
+    ? 'down'
+    : 'up';
+}
+
+function getTrendingDirectionLastItem(lookbacks: number[]): string {
+  return lookbacks[lookbacks.length - 2] > lookbacks[lookbacks.length - 1] ? 'down' : 'up';
+}
+
+function getCrossedSince(lookbacks: number[]): number | undefined {
+  const values = lookbacks.slice().reverse();
+  const currentValue = values[0];
+  for (let i = 1; i < values.length - 1; i++) {
+    if (currentValue < 0 && values[i] > 0 || currentValue >= 0 && values[i] < 0) {
+      return i;
+    }
+  }
+  return undefined;
+}
 import { indicators } from '../utils/indicators';
 import { Candlestick } from '../dict/candlestick';
 import { CandlestickRepository } from '../repository';
