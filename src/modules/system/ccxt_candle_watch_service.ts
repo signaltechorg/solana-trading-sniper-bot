@@ -91,7 +91,7 @@ export class CcxtCandleWatchService {
    */
   restart(): void {
     this.generation++;
-    this.logger.info(`[CcxtCandleWatch] Restarting subscriptions (gen ${this.generation})`);
+    this.logger.debug(`[CcxtCandleWatch] Restarting subscriptions`);
     this.startSubscriptions();
   }
 
@@ -143,7 +143,7 @@ export class CcxtCandleWatchService {
     }
 
     if (allSubs.size === 0) {
-      this.logger.info('[CcxtCandleWatch] No pairs configured, skipping subscriptions');
+      this.logger.debug('[CcxtCandleWatch] No pairs configured, skipping subscriptions');
       return;
     }
 
@@ -168,8 +168,8 @@ export class CcxtCandleWatchService {
       this.runWatcher(group.exchange, symbolPeriodPairs, myGen);
     }
 
-    this.logger.info(
-      `[CcxtCandleWatch] Started ${groups.size} watcher(s) for ${allSubs.size} pair+period combination(s), gen ${myGen}`
+    this.logger.debug(
+      `[CcxtCandleWatch] Started ${groups.size} watcher(s) for ${allSubs.size} pair+period combination(s)`
     );
   }
 
@@ -214,6 +214,6 @@ export class CcxtCandleWatchService {
       // ignore close errors
     }
 
-    this.logger.info(`[CcxtCandleWatch] Watcher stopped: ${exchangeId} gen ${gen}`);
+    this.logger.debug(`[CcxtCandleWatch] Watcher stopped: ${exchangeId}`);
   }
 }

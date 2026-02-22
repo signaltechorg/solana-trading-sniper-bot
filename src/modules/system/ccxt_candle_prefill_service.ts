@@ -23,7 +23,7 @@ export class CcxtCandlePrefillService {
     if (newJobs.length === 0) return;
 
     this.queue.push(...newJobs);
-    this.logger.info(`[CcxtCandlePrefill] Queued ${newJobs.length} jobs (${this.queue.length} pending)`);
+    this.logger.debug(`[CcxtCandlePrefill] Queued ${newJobs.length} jobs (${this.queue.length} pending)`);
     this.processQueue();
   }
 
@@ -55,7 +55,7 @@ export class CcxtCandlePrefillService {
 
       try {
         const count = await this.fetchAndStore(job);
-        this.logger.info(`[CcxtCandlePrefill] ${this.key(job)}: stored ${count} candles (${this.queue.length} remaining)`);
+        this.logger.debug(`[CcxtCandlePrefill] ${this.key(job)}: stored ${count} candles (${this.queue.length} remaining)`);
       } catch (e: any) {
         this.logger.error(`[CcxtCandlePrefill] ${this.key(job)}: ${e.message || String(e)}`, { job });
       }
