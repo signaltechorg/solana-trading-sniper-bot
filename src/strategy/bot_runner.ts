@@ -77,19 +77,21 @@ export class BotRunner {
       try {
         periodMin = periodToMinutes(bot.interval);
       } catch {
-        this.logger.warn(`BotRunner: bot "${bot.id}" has unsupported interval "${bot.interval}", skipping`);
+        this.logger.warn(`BotRunner: bot "${bot.name}" has unsupported interval "${bot.interval}", skipping`);
         continue;
       }
 
       if (minutesSinceEpoch % periodMin !== 0) continue;
 
-      this.logger.info(`BotRunner: triggered "${bot.id}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
+      this.logger.info(`BotRunner: triggering "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
 
       try {
         await this.runBot(bot, profile);
       } catch (err) {
-        this.logger.error(`BotRunner: bot "${bot.id}" (${bot.strategy} ${profile.exchange}:${bot.pair}) failed: ${err}`);
+        this.logger.error(`BotRunner: bot "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair}) failed: ${err}`);
       }
+
+      this.logger.info(`BotRunner: triggered "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
     }
   }
 
