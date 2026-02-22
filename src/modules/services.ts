@@ -365,7 +365,8 @@ const services: Services = {
       this.getExchangeCandleCombine(),
       this.getLogger(),
       this.getCcxtCandleWatchService(),
-      this.getCcxtCandlePrefillService()
+      this.getCcxtCandlePrefillService(),
+      this.getV2StrategyRegistry()
     ));
   },
 

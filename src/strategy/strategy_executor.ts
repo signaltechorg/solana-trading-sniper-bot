@@ -7,43 +7,13 @@
 
 import { convertPeriodToMinute } from '../utils/resample';
 import { StrategyExecutor as CoreExecutor } from '../modules/strategy/v2/typed_backtest';
-import type { TypedIndicatorDefinition, TypedStrategy } from './strategy';
 import type { Logger } from '../modules/services';
 import type { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
 import type { ExchangeCandleCombine } from '../modules/exchange/exchange_candle_combine';
 import type { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
 import type { CcxtCandlePrefillService } from '../modules/system/ccxt_candle_prefill_service';
 import { Candlestick } from '../dict/candlestick';
-
-// Import all built-in strategies
-import { AwesomeOscillatorCrossZero } from './strategies/awesome_oscillator_cross_zero';
-import { Cci } from './strategies/cci';
-import { CciMacd } from './strategies/cci_macd';
-import { Macd } from './strategies/macd';
-import { Noop } from './strategies/noop';
-import { ObvPumpDump } from './strategies/obv_pump_dump';
-import { ParabolicSar } from './strategies/parabolicsar';
-import { PivotReversalStrategy } from './strategies/pivot_reversal_strategy';
-import { Trader } from './strategies/trader';
-import { DcaDipper } from './strategies/dca_dipper/dca_dipper';
-import { DipCatcher } from './strategies/dip_catcher/dip_catcher';
-
-type StrategyInstance = TypedStrategy<Record<string, TypedIndicatorDefinition<any>>>;
-
-// Mapping of strategy names to their classes
-const strategyRegistry = new Map<string, new (options?: any) => StrategyInstance>([
-  ['awesome_oscillator_cross_zero', AwesomeOscillatorCrossZero],
-  ['cci', Cci],
-  ['cci_macd', CciMacd],
-  ['macd', Macd],
-  ['noop', Noop],
-  ['obv_pump_dump', ObvPumpDump],
-  ['parabolicsar', ParabolicSar],
-  ['pivot_reversal_strategy', PivotReversalStrategy],
-  ['trader', Trader],
-  ['dca_dipper', DcaDipper],
-  ['dip_catcher', DipCatcher],
-]);
+import type { StrategyRegistry } from '../modules/strategy/v2/strategy_registry';
 
 export class StrategyExecutor {
   private executor: CoreExecutor;
@@ -53,7 +23,8 @@ export class StrategyExecutor {
     private exchangeCandleCombine: ExchangeCandleCombine,
     private readonly logger: Logger,
     private ccxtCandleWatchService: CcxtCandleWatchService,
-    private ccxtCandlePrefillService: CcxtCandlePrefillService
+    private ccxtCandlePrefillService: CcxtCandlePrefillService,
+    private strategyRegistry: StrategyRegistry
   ) {
     this.executor = new CoreExecutor();
   }
@@ -69,10 +40,7 @@ export class StrategyExecutor {
     period: string,
     options: Record<string, any>
   ): Promise<'long' | 'short' | 'close' | undefined> {
-    const StrategyClass = strategyRegistry.get(strategyName);
-    if (!StrategyClass) {
-      throw new Error(`Strategy not found: ${strategyName}`);
-    }
+    const StrategyClass = this.strategyRegistry.getStrategyClass(strategyName);
 
     const periodAsMinute = convertPeriodToMinute(period) * 60;
     const unixtime = Math.floor(Date.now() / 1000);
