@@ -16,7 +16,6 @@ export class FileCache {
   constructor() {
     const cacheDir = path.join(process.cwd(), 'var', '.cache');
     this.cache = create({ cacheId: 'cache', cacheDir });
-    console.log('[FileCache] Initialized with file persistence');
   }
 
   /**
