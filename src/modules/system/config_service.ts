@@ -38,6 +38,12 @@ export interface Bot {
   options?: Record<string, any>;
 }
 
+// Desk types
+export interface Desk {
+  name: string;
+  [key: string]: any;
+}
+
 // Bot settings types
 interface SlackConfig {
   webhook: string | null;
@@ -179,6 +185,19 @@ export class ConfigService {
   saveProfiles(profiles: Profile[]): void {
     const config = this.readConfig();
     config.profiles = profiles;
+    this.writeConfig(config);
+  }
+
+  // ==================== Desks ====================
+
+  getDesks(): Desk[] {
+    const config = this.readConfig();
+    return config.desks || [];
+  }
+
+  saveDesks(desks: Desk[]): void {
+    const config = this.readConfig();
+    config.desks = desks;
     this.writeConfig(config);
   }
 

@@ -43,15 +43,15 @@
                 <a href="/logs" class="px-3 py-1.5 rounded text-sm <%= typeof activePage !== 'undefined' && activePage === 'logs' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' %>">Logs</a>
                 <a href="/settings" class="px-3 py-1.5 rounded text-sm <%= typeof activePage !== 'undefined' && activePage === 'settings' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100' %>"><i class="fas fa-cog text-xs"></i> Settings</a>
 
-                <% if (typeof desks !== 'undefined' && desks.length > 0) { %>
-                    <div class="relative group">
-                        <button class="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 flex items-center gap-1 cursor-pointer">
-                            Desks <i class="fas fa-caret-down text-xs"></i>
-                        </button>
-                        <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-gray-200 rounded shadow-lg min-w-48 z-50 py-1">
-                            <a href="/desk" class="block px-4 py-1 text-sm text-gray-600 hover:bg-gray-100">
-                                <i class="fas fa-cog text-gray-400"></i> &nbsp; Settings
-                            </a>
+                <div class="relative group">
+                    <button class="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 flex items-center gap-1 cursor-pointer">
+                        Desks <i class="fas fa-caret-down text-xs"></i>
+                    </button>
+                    <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-gray-200 rounded shadow-lg min-w-48 z-50 py-1">
+                        <a href="/desk" class="block px-4 py-1 text-sm text-gray-600 hover:bg-gray-100">
+                            <i class="fas fa-cog text-gray-400"></i> &nbsp; Settings
+                        </a>
+                        <% if (typeof desks !== 'undefined' && desks.length > 0) { %>
                             <div class="border-t border-gray-200 my-1"></div>
                             <% desks.forEach(function(desk, index) { %>
                                 <a href="/desks/<%= index %>" class="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100"><%= desk %></a>
@@ -62,9 +62,9 @@
                                     <i class="fas fa-expand text-gray-400 text-xs"></i> &nbsp; <%= desk %>
                                 </a>
                             <% }); %>
-                        </div>
+                        <% } %>
                     </div>
-                <% } %>
+                </div>
             </div>
         </div>
     </nav>
