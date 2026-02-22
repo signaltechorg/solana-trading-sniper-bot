@@ -2,6 +2,7 @@ import { BaseController, TemplateHelpers } from './base_controller';
 import { ProfileService } from '../profile/profile_service';
 import { ProfilePairService } from '../modules/profile_pair_service';
 import { OrderParams } from '../profile/types';
+import { buildTradingViewSymbol } from '../utils/tradingview_util';
 import express from 'express';
 
 export class OrdersController extends BaseController {
@@ -65,7 +66,7 @@ export class OrdersController extends BaseController {
         allPairs,
         pairErrors,
         ticker,
-        tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
+        tradingview: buildTradingViewSymbol(profile.exchange, pair),
         form: {
           price: ticker ? ticker.bid : undefined,
           type: 'limit'
@@ -150,7 +151,7 @@ export class OrdersController extends BaseController {
         allPairs,
         pairErrors,
         ticker,
-        tradingview: this.buildTradingViewSymbol(profile.exchange, pair),
+        tradingview: buildTradingViewSymbol(profile.exchange, pair),
         form,
         asset,
         currency,
@@ -201,42 +202,5 @@ export class OrdersController extends BaseController {
       asset: parts[0] || '',
       currency: parts[1] || ''
     };
-  }
-
-  /**
-   * Build TradingView symbol from exchange and pair
-   */
-  private buildTradingViewSymbol(exchange: string, pair: string): string {
-    let symbol = pair.replace('/', '');
-
-    // Exchange-specific adjustments
-    if (exchange === 'binance') {
-      // For futures, append PERP
-      if (pair.includes(':USDT')) {
-        symbol = symbol.replace(':USDT', 'PERP');
-      }
-    }
-
-    if (exchange === 'bybit') {
-      if (pair.endsWith(':USDT')) {
-        symbol = symbol.replace(':USDT', '.P');
-      } else if (pair.endsWith(':USDC')) {
-        symbol = symbol.replace(':USDC', '.P');
-      }
-    }
-
-    // Map exchange names to TradingView format
-    const exchangeMap: Record<string, string> = {
-      'coinbasepro': 'coinbase',
-      'coinbase': 'coinbase',
-      'binance': 'binance',
-      'bybit': 'bybit',
-      'kraken': 'kraken',
-      'bitfinex': 'bitfinex',
-    };
-
-    const tvExchange = exchangeMap[exchange.toLowerCase()] || exchange.toLowerCase();
-
-    return `${tvExchange.toUpperCase()}:${symbol.toUpperCase()}`;
   }
 }

@@ -53,6 +53,7 @@ import { CcxtExchangesController } from '../controller';
 import { DashboardSettingsController } from '../controller';
 import { ProfileController } from '../controller';
 import { SettingsController } from '../controller';
+import { TradingViewController } from '../controller/tradingview_controller';
 
 // V2 Strategies
 import { DcaDipper } from '../strategy/strategies/dca_dipper/dca_dipper';
@@ -185,6 +186,7 @@ export interface Services {
   getCcxtExchangesController(templateHelpers: any): CcxtExchangesController;
   getProfileController(templateHelpers: any): ProfileController;
   getSettingsController(templateHelpers: any): SettingsController;
+  getTradingViewController(templateHelpers: any): TradingViewController;
   getExchangeInstanceService(): ExchangeInstanceService;
   getProfileService(): ProfileService;
   getProfilePairService(): ProfilePairService;
@@ -523,6 +525,10 @@ const services: Services = {
 
   getSettingsController: function (templateHelpers: any): SettingsController {
     return new SettingsController(templateHelpers, this.getSystemUtil());
+  },
+
+  getTradingViewController: function (templateHelpers: any): TradingViewController {
+    return new TradingViewController(templateHelpers);
   },
 
   getExchangeInstanceService: function (): ExchangeInstanceService {
