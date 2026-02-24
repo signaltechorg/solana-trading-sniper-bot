@@ -37,6 +37,8 @@ export class ProfileController extends BaseController {
     // API Routes
     router.get('/api/profiles/:id/balances', this.getBalances.bind(this));
     router.get('/api/profiles/:id/orders', this.getOrders.bind(this));
+    router.get('/api/profiles/:id/positions', this.getPositions.bind(this));
+    router.post('/api/profiles/:id/positions/close', this.closePosition.bind(this));
     router.get('/api/profiles/:id/orders/:pair/cancel/:orderId', this.cancelOrder.bind(this));
     router.get('/api/exchanges', this.getExchanges.bind(this));
     router.get('/api/profiles/:id/pairs', this.getPairs.bind(this));
@@ -182,6 +184,46 @@ export class ProfileController extends BaseController {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to cancel order' });
+    }
+  }
+
+  private async getPositions(req: express.Request, res: express.Response): Promise<void> {
+    const { id } = req.params;
+    const profile = this.profileService.getProfile(id);
+
+    if (!profile) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    if (!profile.apiKey || !profile.secret) {
+      res.status(400).json({ error: 'API credentials not configured' });
+      return;
+    }
+
+    try {
+      const positions = await this.profileService.fetchOpenPositions(id);
+      res.json({ success: true, positions });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to fetch positions' });
+    }
+  }
+
+  private async closePosition(req: express.Request, res: express.Response): Promise<void> {
+    const { id } = req.params;
+    const { symbol, type } = req.body;
+    const profile = this.profileService.getProfile(id);
+
+    if (!profile) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    try {
+      await this.profileService.closePosition(id, decodeURIComponent(symbol), type as 'limit' | 'market');
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to close position' });
     }
   }
 

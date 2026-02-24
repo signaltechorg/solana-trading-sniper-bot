@@ -51,6 +51,9 @@
                 <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="orders">
                     Orders
                 </button>
+                <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="positions">
+                    Positions
+                </button>
                 <button type="button" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="bots">
                     Bots
                 </button>
@@ -100,6 +103,25 @@
                     <div class="p-8 text-center text-gray-400">
                         <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                         <p>Loading orders...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Positions -->
+        <div id="tab-positions" class="tab-content hidden">
+            <div class="bg-white border border-gray-200 rounded">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <span class="font-medium">Positions</span>
+                    <button type="button" id="refresh-positions" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                    </button>
+                </div>
+
+                <div id="positions-content">
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Loading positions...</p>
                     </div>
                 </div>
             </div>
@@ -202,6 +224,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         // Load orders when tab is first shown
         if (tabId === 'orders' && !window.ordersLoaded) {
             loadOrders();
+        }
+
+        // Load positions when tab is first shown
+        if (tabId === 'positions' && !window.positionsLoaded) {
+            loadPositions();
         }
     });
 });
@@ -475,5 +502,147 @@ function cancelOrder(pair, orderId) {
 document.getElementById('refresh-orders').addEventListener('click', function() {
     window.ordersLoaded = false;
     loadOrders();
+});
+
+function loadPositions() {
+    const contentEl = document.getElementById('positions-content');
+
+    if (!hasCredentials) {
+        contentEl.innerHTML = `
+            <div class="p-4">
+                <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch positions.
+                    <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    contentEl.innerHTML = `
+        <div class="p-8 text-center text-gray-400">
+            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+            <p>Loading positions...</p>
+        </div>
+    `;
+
+    fetch('/api/profiles/' + profileId + '/positions')
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                contentEl.innerHTML = `
+                    <div class="p-4">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const positions = data.positions || [];
+
+            if (positions.length === 0) {
+                contentEl.innerHTML = `
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fas fa-chart-line text-4xl mb-3"></i>
+                        <p>No open positions.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Symbol</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Side</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Contracts</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Entry</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Mark</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Notional</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Unreal. PnL</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Liq. Price</th>
+                            <th class="text-right py-2 px-4 font-medium text-gray-600">Lev.</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Margin</th>
+                            <th class="text-left py-2 px-4 font-medium text-gray-600">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+            `;
+
+            positions.forEach(function(pos) {
+                const sideBadge = pos.side === 'long'
+                    ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800"><i class="fas fa-chevron-up mr-1"></i>long</span>'
+                    : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-800"><i class="fas fa-chevron-down mr-1"></i>short</span>';
+
+                const pnlClass = pos.unrealizedPnl >= 0 ? 'text-green-600' : 'text-red-600';
+                const pnlSign = pos.unrealizedPnl >= 0 ? '+' : '';
+
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 font-mono text-xs">${pos.symbol}</td>
+                        <td class="py-2 px-4">${sideBadge}</td>
+                        <td class="py-2 px-4 text-right font-mono">${pos.contracts}${pos.contractSize && pos.contractSize !== 1 ? '<span class="text-gray-400 text-xs">×' + pos.contractSize + '</span>' : ''}</td>
+                        <td class="py-2 px-4 text-right font-mono">${pos.entryPrice != null ? formatPrice(pos.entryPrice) : '-'}</td>
+                        <td class="py-2 px-4 text-right font-mono">${pos.markPrice != null ? formatPrice(pos.markPrice) : '-'}</td>
+                        <td class="py-2 px-4 text-right font-mono">${pos.notional != null ? formatPrice(Math.abs(pos.notional)) : '-'}</td>
+                        <td class="py-2 px-4 text-right font-mono ${pnlClass}">
+                            ${pos.unrealizedPnl != null ? pnlSign + pos.unrealizedPnl.toFixed(4) + (pos.percentage != null ? '<span class="text-xs opacity-75">(' + pos.percentage.toFixed(2) + '%)</span>' : '') : '-'}
+                        </td>
+                        <td class="py-2 px-4 text-right font-mono text-orange-600">${pos.liquidationPrice != null ? formatPrice(pos.liquidationPrice) : '-'}</td>
+                        <td class="py-2 px-4 text-right text-gray-600">${pos.leverage != null ? pos.leverage + '×' : '-'}</td>
+                        <td class="py-2 px-4 text-gray-500">${pos.marginMode ? '<span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">' + pos.marginMode + '</span>' : '-'}</td>
+                        <td class="py-2 px-4 whitespace-nowrap">
+                            <button onclick="closePosition('${encodeURIComponent(pos.symbol)}', 'limit')" class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200 mr-1" title="Limit Close" onclick="return confirm('Limit close ${pos.contracts} ${pos.symbol}?')">Limit</button>
+                            <button onclick="closePosition('${encodeURIComponent(pos.symbol)}', 'market')" class="text-xs px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200" title="Market Close">Market</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            contentEl.innerHTML = html;
+            window.positionsLoaded = true;
+        })
+        .catch(err => {
+            contentEl.innerHTML = `
+                <div class="p-4">
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load positions: ${err.message}
+                    </div>
+                </div>
+            `;
+        });
+}
+
+function closePosition(symbol, type) {
+    const typeLabel = type === 'market' ? 'Market' : 'Limit';
+    if (!confirm(typeLabel + ' close position for ' + decodeURIComponent(symbol) + '?')) return;
+
+    fetch('/api/profiles/' + profileId + '/positions/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: symbol, type: type })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert('Failed to close position: ' + data.error);
+            } else {
+                window.positionsLoaded = false;
+                loadPositions();
+            }
+        })
+        .catch(err => {
+            alert('Failed to close position: ' + err.message);
+        });
+}
+
+// Refresh positions button
+document.getElementById('refresh-positions').addEventListener('click', function() {
+    window.positionsLoaded = false;
+    loadPositions();
 });
 </script>
