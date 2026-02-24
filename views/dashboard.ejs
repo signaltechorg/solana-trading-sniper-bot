@@ -111,17 +111,17 @@
                                 <% } else if (ta && ta.stoch_rsi && ta.stoch_rsi.value && ta.stoch_rsi.value.stoch_k <= 20 && ta.stoch_rsi.value.stoch_d <= 20) { %>
                                     <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="fas fa-circle text-green-600"></i>
                                 <% } else if (ta && ta.stoch_rsi && ta.stoch_rsi.value) { %>
-                                    <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="fas fa-circle-arrow-up <%= ta.stoch_rsi.value.stoch_k >= ta.stoch_rsi.value.stoch_d ? 'trend-up text-green-600' : 'trend-down text-red-600' %>"></i>
+                                    <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="fas <%= ta.stoch_rsi.value.stoch_k >= ta.stoch_rsi.value.stoch_d ? 'fa-circle-arrow-up trend-up text-green-600' : 'fa-circle-arrow-down trend-down text-red-600' %>"></i>
                                 <% } else { %>-<% } %>
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.ao && ta.ao.value) ? (ta.ao.value > 0 ? 'text-green-600' : 'text-red-600') : '' %>">
                                 <% if (ta && ta.ao && ta.ao.value !== undefined) { %>
-                                    <i title="<%= ta.ao.crossed || '-' %>m ago" class="fas fa-arrow-up <%= ta.ao.trend == 'up' ? 'trend-up' : 'trend-down' %> <%= ((ta.ao.value > 0 && ta.ao.trend == 'down') || (ta.ao.value < 0 && ta.ao.trend == 'up')) ? 'font-bold' : '' %> <%= ta.ao.crossed_index && ta.ao.crossed_index < 5 ? 'blink' : '' %>"></i>
+                                    <i title="<%= ta.ao.crossed || '-' %>m ago" class="fas <%= ta.ao.trend == 'up' ? 'fa-arrow-up trend-up' : 'fa-arrow-down trend-down' %> <%= ((ta.ao.value > 0 && ta.ao.trend == 'down') || (ta.ao.value < 0 && ta.ao.trend == 'up')) ? 'font-bold' : '' %> <%= ta.ao.crossed_index && ta.ao.crossed_index < 5 ? 'blink' : '' %>"></i>
                                 <% } else { %>-<% } %>
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.macd && ta.macd.value && ta.macd.value.histogram !== undefined) ? (ta.macd.value.histogram > 0 ? 'text-green-600' : 'text-red-600') : '' %>">
                                 <% if (ta && ta.macd && ta.macd.value && ta.macd.value.histogram !== undefined) { %>
-                                    <i title="<%= ta.macd.crossed || '-' %>m ago" class="fas fa-circle-arrow-up <%= ta.macd.trend == 'up' ? 'trend-up' : 'trend-down' %> <%= ((ta.macd.value.histogram > 0 && ta.macd.trend == 'down') || (ta.macd.value.histogram < 0 && ta.macd.trend == 'up')) ? 'font-bold' : '' %> <%= ta.macd.crossed_index && ta.macd.crossed_index < 5 ? 'blink' : '' %>"></i>
+                                    <i title="<%= ta.macd.crossed || '-' %>m ago" class="fas <%= ta.macd.trend == 'up' ? 'fa-circle-arrow-up trend-up' : 'fa-circle-arrow-down trend-down' %> <%= ((ta.macd.value.histogram > 0 && ta.macd.trend == 'down') || (ta.macd.value.histogram < 0 && ta.macd.trend == 'up')) ? 'font-bold' : '' %> <%= ta.macd.crossed_index && ta.macd.crossed_index < 5 ? 'blink' : '' %>"></i>
                                 <% } else { %>-<% } %>
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.mfi && ta.mfi.value) ? [
