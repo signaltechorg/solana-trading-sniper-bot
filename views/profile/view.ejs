@@ -574,8 +574,8 @@ function loadPositions() {
 
             positions.forEach(function(pos) {
                 const sideBadge = pos.side === 'long'
-                    ? '<span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800"><i class="fas fa-chevron-up mr-1"></i>long</span>'
-                    : '<span class="px-2 py-1 rounded text-xs bg-red-100 text-red-800"><i class="fas fa-chevron-down mr-1"></i>short</span>';
+                    ? '<span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-800 whitespace-nowrap"><i class="fas fa-chevron-up mr-1"></i>long</span>'
+                    : '<span class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-800 whitespace-nowrap"><i class="fas fa-chevron-down mr-1"></i>short</span>';
 
                 const pnlClass = pos.unrealizedPnl >= 0 ? 'text-green-600' : 'text-red-600';
                 const pnlSign = pos.unrealizedPnl >= 0 ? '+' : '';
@@ -583,7 +583,7 @@ function loadPositions() {
                 html += `
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 font-mono text-xs">${pos.symbol}</td>
-                        <td class="py-2 px-4">${sideBadge}</td>
+                        <td class="py-2 px-4 whitespace-nowrap">${sideBadge}</td>
                         <td class="py-2 px-4 text-right font-mono">${pos.contracts}${pos.contractSize && pos.contractSize !== 1 ? '<span class="text-gray-400 text-xs">×' + pos.contractSize + '</span>' : ''}</td>
                         <td class="py-2 px-4 text-right font-mono">${pos.entryPrice != null ? formatPrice(pos.entryPrice) : '-'}</td>
                         <td class="py-2 px-4 text-right font-mono">${pos.markPrice != null ? formatPrice(pos.markPrice) : '-'}</td>
@@ -593,7 +593,7 @@ function loadPositions() {
                         </td>
                         <td class="py-2 px-4 text-right font-mono text-orange-600">${pos.liquidationPrice != null ? formatPrice(pos.liquidationPrice) : '-'}</td>
                         <td class="py-2 px-4 text-right text-gray-600">${pos.leverage != null ? pos.leverage + '×' : '-'}</td>
-                        <td class="py-2 px-4 text-gray-500">${pos.marginMode ? '<span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">' + pos.marginMode + '</span>' : '-'}</td>
+                        <td class="py-2 px-4 text-gray-500">${pos.marginMode ? '<span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600 whitespace-nowrap">' + pos.marginMode + '</span>' : '-'}</td>
                         <td class="py-2 px-4 whitespace-nowrap">
                             <button onclick="closePosition('${encodeURIComponent(pos.symbol)}', 'limit')" class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200 mr-1" title="Limit Close" onclick="return confirm('Limit close ${pos.contracts} ${pos.symbol}?')">Limit</button>
                             <button onclick="closePosition('${encodeURIComponent(pos.symbol)}', 'market')" class="text-xs px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200" title="Market Close">Market</button>
