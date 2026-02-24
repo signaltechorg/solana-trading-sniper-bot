@@ -1,7 +1,7 @@
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const { ConfigService } = require('../../src/modules/system/config_service');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { ConfigService } from '../../src/modules/system/config_service';
 
 describe('#config service test', function() {
   const testConfigDir = path.join(__dirname, 'fixtures');

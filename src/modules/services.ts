@@ -35,6 +35,8 @@ import { LogsRepository, TickerLogRepository, TickerRepository } from '../reposi
 import { QueueManager } from '../utils/queue';
 import { FileCache } from '../utils/file_cache';
 import { BinancePriceService } from '../utils/binance_price_service';
+import nodemailer from 'nodemailer';
+import { Telegraf } from 'telegraf';
 
 import { ExchangeCandleCombine } from './exchange/exchange_candle_combine';
 import { ExchangeInstanceService } from './system/exchange_instance_service';
@@ -429,11 +431,9 @@ const services: Services = {
   },
 
   createMailer: function (): any {
-    const mail = require('nodemailer');
-
     const config = this.getConfig();
 
-    return mail.createTransport({
+    return nodemailer.createTransport({
       host: config.notify?.mail?.server,
       port: config.notify?.mail?.port,
       secure: config.notify?.mail?.port == 465,
@@ -445,7 +445,6 @@ const services: Services = {
   },
 
   createTelegram: function (): any {
-    const { Telegraf } = require('telegraf');
     const config = this.getConfig();
     const { token } = config.notify?.telegram || {};
 

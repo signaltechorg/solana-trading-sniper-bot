@@ -65,9 +65,9 @@ interface TalibModule {
   execute: (params: Record<string, unknown>) => TalibResult;
 }
 
-// Lazy load modules
+// Lazy load modules (using dynamic import for heavy native modules)
 const getTalib = (): TalibModule => require('talib');
-const getTechnicalIndicators = (): typeof import('technicalindicators') => require('technicalindicators');
+const getTechnicalIndicators = () => require('technicalindicators') as typeof import('technicalindicators');
 
 interface PivotPointsWithWicksResult {
   high?: { close?: number; high?: number };

@@ -1,5 +1,5 @@
-const assert = require('assert');
-const fs = require('fs');
+import assert from 'assert';
+import fs from 'fs';
 
 describe('#validate pre deployment files', function() {
   it('test that config.json.dist file is valid', () => {
@@ -12,6 +12,6 @@ describe('#validate pre deployment files', function() {
     const instances = require(`${__dirname}/../instance.js.dist`);
 
     assert.equal(instances.symbols.length > 0, true);
-    assert.equal(instances.symbols.filter(i => i.symbol === 'ETHUSD').length, 1);
+    assert.equal(instances.symbols.filter((i: any) => i.symbol === 'ETHUSD').length, 1);
   });
 });

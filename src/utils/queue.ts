@@ -1,4 +1,4 @@
-const Queue = require('queue-promise');
+import Queue from 'queue-promise';
 
 export class QueueManager {
   private queue: any;
