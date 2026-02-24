@@ -77,6 +77,7 @@ export class SettingsController extends BaseController {
         size: dbSize
       },
       uptime: uptimeSec,
+      processUptime: process.uptime(),
       nodeVersion: process.version,
       platform: os.platform()
     };

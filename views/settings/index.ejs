@@ -30,7 +30,7 @@ function formatUptime(seconds) {
                         <i class="fab fa-node-js text-green-500 text-sm"></i>
                         <span class="text-sm font-semibold text-gray-700">Runtime</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div class="grid grid-cols-4 gap-4 text-sm">
                         <div>
                             <div class="text-gray-500 text-xs mb-0.5">Node.js</div>
                             <div class="font-mono text-gray-800"><%= sysInfo.nodeVersion %></div>
@@ -40,8 +40,12 @@ function formatUptime(seconds) {
                             <div class="font-mono text-gray-800"><%= sysInfo.platform %></div>
                         </div>
                         <div>
-                            <div class="text-gray-500 text-xs mb-0.5">Uptime</div>
+                            <div class="text-gray-500 text-xs mb-0.5">System Uptime</div>
                             <div class="font-mono text-gray-800"><%= formatUptime(sysInfo.uptime) %></div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 text-xs mb-0.5">Bot Uptime</div>
+                            <div class="font-mono text-gray-800"><%= formatUptime(sysInfo.processUptime) %></div>
                         </div>
                     </div>
                 </div>
