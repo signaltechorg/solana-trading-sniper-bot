@@ -1,7 +1,7 @@
-import { BaseController, TemplateHelpers } from '../controller/base_controller';
-import { ProfileService } from './profile_service';
+import { BaseController, TemplateHelpers } from './base_controller';
+import { ProfileService } from '../profile/profile_service';
 import { ProfilePairService } from '../modules/profile_pair_service';
-import { Profile } from './types';
+import { Profile } from '../profile/types';
 import { StrategyRegistry } from '../modules/strategy/v2/strategy_registry';
 import { CcxtCandleWatchService } from '../modules/system/ccxt_candle_watch_service';
 import express from 'express';

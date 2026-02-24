@@ -47,7 +47,8 @@ export class DashboardSettingsController extends BaseController {
         ? { type: 'success', title: 'Settings saved.' }
         : undefined;
       res.render('dashboard/settings', {
-        activePage: 'dashboard',
+        activePage: 'settings',
+        activeSettingsPage: 'dashboard',
         title: 'Dashboard Settings | Crypto Bot',
         config,
         exchanges: EXCHANGES,

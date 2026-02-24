@@ -1,119 +1,113 @@
-<!-- Content -->
 <div class="p-4">
-    <div class="max-w-[900px] mx-auto">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-semibold">Dashboard Settings</h1>
-            <a href="/" class="text-gray-600 hover:text-gray-800 cursor-pointer">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
-            </a>
-        </div>
+    <div class="flex gap-6 max-w-[1100px]">
+        <%- include('../components/settings_sidebar', { activeSettingsPage }) %>
 
-        <% if (typeof alert !== 'undefined' && alert) { %>
-            <%- include('../components/alert', { alert }) %>
-        <% } %>
+        <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-semibold mb-4">Dashboard Settings</h1>
 
-        <form action="/dashboard/settings" method="POST" class="space-y-6" id="settingsForm">
+            <% if (typeof alert !== 'undefined' && alert) { %>
+                <%- include('../components/alert', { alert }) %>
+            <% } %>
 
-            <!-- Periods Section -->
-            <div class="bg-white rounded shadow p-6">
-                <h2 class="text-lg font-semibold mb-4 pb-2 border-b">Periods</h2>
-                <div>
-                    <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">Active Periods</label>
-                    <select id="periods" name="periods" multiple class="w-full" data-slim-select data-slim-placeholder="Select periods...">
-                        <% periods.forEach(function(period) { %>
-                            <option value="<%= period.value %>" <%= config.periods.includes(period.value) ? 'selected' : '' %>><%= period.label %></option>
-                        <% }); %>
-                    </select>
+            <form action="/dashboard/settings" method="POST" class="space-y-4 max-w-[600px]" id="settingsForm">
+
+                <!-- Periods Section -->
+                <div class="bg-white rounded shadow p-6">
+                    <h2 class="text-sm font-semibold mb-4 pb-2 border-b">Periods</h2>
+                    <div>
+                        <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">Active Periods</label>
+                        <select id="periods" name="periods" multiple class="w-full" data-slim-select data-slim-placeholder="Select periods...">
+                            <% periods.forEach(function(period) { %>
+                                <option value="<%= period.value %>" <%= config.periods.includes(period.value) ? 'selected' : '' %>><%= period.label %></option>
+                            <% }); %>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Pairs Section -->
-            <div class="bg-white rounded shadow p-6">
-                <h2 class="text-lg font-semibold mb-4 pb-2 border-b">Pairs</h2>
+                <!-- Pairs Section -->
+                <div class="bg-white rounded shadow p-6">
+                    <h2 class="text-sm font-semibold mb-4 pb-2 border-b">Pairs</h2>
 
-                <!-- Add Pair Row -->
-                <div class="flex gap-2 mb-4">
-                    <select id="newPairExchange" class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <% exchanges.forEach(function(ex) { %>
-                            <option value="<%= ex.id %>"><%= ex.name %></option>
-                        <% }); %>
-                    </select>
-                    <div class="flex-1 relative">
-                        <input type="text" id="newPairSymbol"
-                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="Search symbol... (e.g. BTC/USDT)"
-                               autocomplete="off">
-                        <div id="symbolDropdown" class="absolute left-0 right-0 top-full bg-white border border-gray-300 rounded mt-1 shadow-lg hidden z-10 max-h-60 overflow-y-auto">
-                            <div id="symbolLoading" class="hidden px-3 py-2 text-sm text-gray-400 flex items-center gap-2">
-                                <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                </svg>
-                                Loading symbols...
+                    <!-- Add Pair Row -->
+                    <div class="flex gap-2 mb-4">
+                        <select id="newPairExchange" class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <% exchanges.forEach(function(ex) { %>
+                                <option value="<%= ex.id %>"><%= ex.name %></option>
+                            <% }); %>
+                        </select>
+                        <div class="flex-1 relative">
+                            <input type="text" id="newPairSymbol"
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Search symbol... (e.g. BTC/USDT)"
+                                   autocomplete="off">
+                            <div id="symbolDropdown" class="absolute left-0 right-0 top-full bg-white border border-gray-300 rounded mt-1 shadow-lg hidden z-10 max-h-60 overflow-y-auto">
+                                <div id="symbolLoading" class="hidden px-3 py-2 text-sm text-gray-400 flex items-center gap-2">
+                                    <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                    </svg>
+                                    Loading symbols...
+                                </div>
                             </div>
                         </div>
+                        <button type="button" onclick="addPair()"
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm whitespace-nowrap cursor-pointer">
+                            <i class="fas fa-plus mr-1"></i> Add
+                        </button>
                     </div>
-                    <button type="button" onclick="addPair()"
-                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm whitespace-nowrap cursor-pointer">
-                        <i class="fas fa-plus mr-1"></i> Add
-                    </button>
-                </div>
 
-                <!-- Pairs Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse text-sm">
-                        <thead>
-                            <tr>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 w-8"></th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Exchange</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Symbol</th>
-                                <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-center w-20">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pairsTableBody">
-                            <% if (config.pairs && config.pairs.length > 0) { %>
-                                <% config.pairs.forEach(function(pair, index) { %>
-                                    <tr class="hover:bg-gray-100 pair-row" draggable="true" data-index="<%= index %>">
-                                        <td class="border border-gray-200 px-2 py-1 text-gray-400 cursor-move drag-handle">
-                                            <i class="fas fa-grip-vertical"></i>
-                                        </td>
-                                        <td class="border border-gray-200 px-2 py-1">
-                                            <input type="hidden" name="pairs[<%= index %>][exchange]" value="<%= pair.exchange %>">
-                                            <span class="font-mono"><%= pair.exchange %></span>
-                                        </td>
-                                        <td class="border border-gray-200 px-2 py-1">
-                                            <input type="hidden" name="pairs[<%= index %>][symbol]" value="<%= pair.symbol %>">
-                                            <span class="font-mono"><%= pair.symbol %></span>
-                                        </td>
-                                        <td class="border border-gray-200 px-2 py-1 text-center">
-                                            <button type="button" onclick="removePair(this)" class="text-red-600 hover:text-red-800 cursor-pointer">
-                                                <i class="fas fa-times"></i>
-                                            </button>
+                    <!-- Pairs Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 w-8"></th>
+                                    <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Exchange</th>
+                                    <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-left">Symbol</th>
+                                    <th class="border border-gray-200 bg-gray-50 font-semibold px-2 py-1 text-center w-20">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pairsTableBody">
+                                <% if (config.pairs && config.pairs.length > 0) { %>
+                                    <% config.pairs.forEach(function(pair, index) { %>
+                                        <tr class="hover:bg-gray-100 pair-row" draggable="true" data-index="<%= index %>">
+                                            <td class="border border-gray-200 px-2 py-1 text-gray-400 cursor-move drag-handle">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </td>
+                                            <td class="border border-gray-200 px-2 py-1">
+                                                <input type="hidden" name="pairs[<%= index %>][exchange]" value="<%= pair.exchange %>">
+                                                <span class="font-mono"><%= pair.exchange %></span>
+                                            </td>
+                                            <td class="border border-gray-200 px-2 py-1">
+                                                <input type="hidden" name="pairs[<%= index %>][symbol]" value="<%= pair.symbol %>">
+                                                <span class="font-mono"><%= pair.symbol %></span>
+                                            </td>
+                                            <td class="border border-gray-200 px-2 py-1 text-center">
+                                                <button type="button" onclick="removePair(this)" class="text-red-600 hover:text-red-800 cursor-pointer">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr id="noPairsRow">
+                                        <td colspan="4" class="border border-gray-200 px-2 py-8 text-center text-gray-400">
+                                            No pairs configured. Add your first pair above.
                                         </td>
                                     </tr>
-                                <% }); %>
-                            <% } else { %>
-                                <tr id="noPairsRow">
-                                    <td colspan="4" class="border border-gray-200 px-2 py-8 text-center text-gray-400">
-                                        No pairs configured. Add your first pair above.
-                                    </td>
-                                </tr>
-                            <% } %>
-                        </tbody>
-                    </table>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Submit Buttons -->
-            <div class="flex justify-end gap-3">
-                <a href="/" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-                    Cancel
-                </a>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
-                    <i class="fas fa-save mr-1"></i> Save Changes
-                </button>
-            </div>
-        </form>
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

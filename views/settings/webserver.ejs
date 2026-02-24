@@ -1,0 +1,64 @@
+<div class="p-4">
+    <div class="flex gap-6 max-w-[1100px]">
+        <%- include('../components/settings_sidebar', { activeSettingsPage }) %>
+
+        <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-semibold mb-4">Webserver</h1>
+
+            <form action="/settings/webserver" method="POST" autocomplete="off" class="max-w-[600px]">
+                <% if (saved) { %>
+                    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                        <i class="fas fa-check-circle mr-2"></i> Settings saved successfully!
+                    </div>
+                <% } %>
+
+                <div class="bg-white rounded shadow p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="webserver_ip" class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
+                            <input type="text" id="webserver_ip" name="webserver_ip"
+                                   value="<%= settings.webserver.ip || '' %>"
+                                   placeholder="0.0.0.0"
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="webserver_port" class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+                            <input type="number" id="webserver_port" name="webserver_port"
+                                   value="<%= settings.webserver.port || '' %>"
+                                   placeholder="8080"
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="webserver_username" class="block text-sm font-medium text-gray-700 mb-1">Username (Basic Auth)</label>
+                            <input type="text" id="webserver_username" name="webserver_username"
+                                   value="<%= settings.webserver.username || '' %>"
+                                   placeholder="admin"
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="webserver_password" class="block text-sm font-medium text-gray-700 mb-1">Password (Basic Auth)</label>
+                            <input type="password" id="webserver_password" name="webserver_password"
+                                   value="<%= settings.webserver.password || '' %>"
+                                   placeholder="••••••••"
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Note: Changing webserver settings requires a restart of the bot.
+                    </p>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

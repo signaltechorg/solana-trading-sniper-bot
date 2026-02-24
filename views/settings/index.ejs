@@ -1,0 +1,126 @@
+<%
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+function formatUptime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return d + 'd ' + h + 'h';
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm';
+}
+%>
+<div class="p-4">
+    <div class="flex gap-6 max-w-[1100px]">
+        <%- include('../components/settings_sidebar', { activeSettingsPage }) %>
+
+        <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-semibold mb-4">System</h1>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[700px]">
+
+                <!-- Runtime -->
+                <div class="bg-white rounded shadow p-4 md:col-span-2">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fab fa-node-js text-green-500 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">Runtime</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <div class="text-gray-500 text-xs mb-0.5">Node.js</div>
+                            <div class="font-mono text-gray-800"><%= sysInfo.nodeVersion %></div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 text-xs mb-0.5">Platform</div>
+                            <div class="font-mono text-gray-800"><%= sysInfo.platform %></div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 text-xs mb-0.5">Uptime</div>
+                            <div class="font-mono text-gray-800"><%= formatUptime(sysInfo.uptime) %></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory -->
+                <div class="bg-white rounded shadow p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-memory text-blue-400 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">Memory</span>
+                    </div>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Used</span>
+                            <span class="font-mono text-gray-800"><%= formatBytes(sysInfo.memory.used) %> / <%= formatBytes(sysInfo.memory.total) %></span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                            <div class="bg-blue-400 h-1.5 rounded-full" style="width: <%= sysInfo.memory.usedPercent %>%"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 text-right"><%= sysInfo.memory.usedPercent %>%</div>
+                    </div>
+                </div>
+
+                <!-- CPU -->
+                <div class="bg-white rounded shadow p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-microchip text-purple-400 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">CPU</span>
+                    </div>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Cores</span>
+                            <span class="font-mono text-gray-800"><%= sysInfo.cpu.count %></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Model</span>
+                            <span class="font-mono text-gray-800 text-xs truncate ml-2 max-w-[160px]" title="<%= sysInfo.cpu.model %>"><%= sysInfo.cpu.model %></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk -->
+                <% if (sysInfo.disk) { %>
+                <div class="bg-white rounded shadow p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-hdd text-green-400 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">Disk</span>
+                    </div>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Used</span>
+                            <span class="font-mono text-gray-800"><%= formatBytes(sysInfo.disk.used) %> / <%= formatBytes(sysInfo.disk.total) %></span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                            <div class="<%= sysInfo.disk.usedPercent > 85 ? 'bg-red-400' : 'bg-green-400' %> h-1.5 rounded-full" style="width: <%= sysInfo.disk.usedPercent %>%"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 text-right"><%= sysInfo.disk.usedPercent %>%</div>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Database -->
+                <div class="bg-white rounded shadow p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-database text-yellow-400 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">Database</span>
+                    </div>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Size</span>
+                            <span class="font-mono text-gray-800"><%= sysInfo.db.size !== null ? formatBytes(sysInfo.db.size) : '—' %></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">File</span>
+                            <span class="font-mono text-gray-400 text-xs truncate ml-2 max-w-[160px]" title="<%= sysInfo.db.path %>"><%= sysInfo.db.path.split('/').pop() %></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

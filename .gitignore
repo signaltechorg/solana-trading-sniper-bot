@@ -10,3 +10,6 @@ bot.db-shm
 bot.db-wal
 dist
 var
+
+# TypeScript incremental cache
+*.tsbuildinfo

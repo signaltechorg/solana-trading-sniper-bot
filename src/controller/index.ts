@@ -10,5 +10,5 @@ export { LogsController } from './logs_controller';
 export { DesksController } from './desks_controller';
 export { CcxtExchangesController } from './ccxt_exchanges_controller';
 export { DashboardSettingsController } from './dashboard_settings_controller';
-export { ProfileController } from '../profile/profile_controller';
+export { ProfileController } from './profile_controller';
 export { SettingsController } from './settings_controller';

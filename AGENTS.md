@@ -22,8 +22,13 @@ npm start              # Build and run in production
 ```bash
 npm test               # Run TypeScript tests with mocha
 npm test:js            # Run JavaScript tests
-npm run build:tsc      # Compile with TypeScript compiler
+npm run build:tsc      # Type-check with tsc (run before commits/CI)
 ```
+
+### Build Tools
+
+- **esbuild** (`npm run build`, `npm run build:prod`): Fast bundling/transpiling, no type-checking
+- **tsc** (`npm run build:tsc`): Type-checking - run before commits to catch type errors
 
 ## Architecture Overview
 

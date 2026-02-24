@@ -24,7 +24,8 @@ export class DesksController extends BaseController {
     router.get('/desk', (req: any, res: any) => {
       const deskList = this.deskService.getDesks();
       res.render('desk/index', {
-        activePage: 'desk',
+        activePage: 'settings',
+        activeSettingsPage: 'desk',
         title: 'Desk Settings | Crypto Bot',
         deskList
       });
