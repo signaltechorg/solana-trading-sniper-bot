@@ -5,7 +5,7 @@
         </div>
         <a href="/settings"
            class="flex items-center gap-2 px-3 py-2 border-b border-gray-100 border-l-2 <%= activeSettingsPage === '' ? 'bg-blue-50 text-blue-700 font-medium border-l-blue-600' : 'text-gray-700 hover:bg-gray-50 border-l-transparent' %>">
-            <i class="fas fa-circle-info w-4 text-center text-xs <%= activeSettingsPage === '' ? 'text-blue-500' : 'text-gray-400' %>"></i>
+            <i class="fas fa-info-circle w-4 text-center text-xs <%= activeSettingsPage === '' ? 'text-blue-500' : 'text-gray-400' %>"></i>
             System
         </a>
 
@@ -21,6 +21,15 @@
            class="flex items-center gap-2 px-3 py-2 border-b border-gray-100 border-l-2 <%= activeSettingsPage === 'notifications' ? 'bg-blue-50 text-blue-700 font-medium border-l-blue-600' : 'text-gray-700 hover:bg-gray-50 border-l-transparent' %>">
             <i class="fas fa-bell w-4 text-center text-xs <%= activeSettingsPage === 'notifications' ? 'text-blue-500' : 'text-gray-400' %>"></i>
             Notifications
+        </a>
+
+        <div class="px-3 py-2 bg-gray-50 border-b border-t border-gray-200">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Exchanges</span>
+        </div>
+        <a href="/profiles"
+           class="flex items-center gap-2 px-3 py-2 border-b border-gray-100 border-l-2 <%= activeSettingsPage === 'profiles' ? 'bg-blue-50 text-blue-700 font-medium border-l-blue-600' : 'text-gray-700 hover:bg-gray-50 border-l-transparent' %>">
+            <i class="fas fa-user-circle w-4 text-center text-xs <%= activeSettingsPage === 'profiles' ? 'text-blue-500' : 'text-gray-400' %>"></i>
+            Profiles
         </a>
 
         <div class="px-3 py-2 bg-gray-50 border-b border-t border-gray-200">

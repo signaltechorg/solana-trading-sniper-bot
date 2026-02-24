@@ -48,7 +48,7 @@ export class ProfileController extends BaseController {
   private async index(req: express.Request, res: express.Response): Promise<void> {
     const profiles = this.profileService.getProfiles();
     this.render(res, 'profile/index', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: 'Profiles | Crypto Bot',
       profiles,
     });
@@ -64,7 +64,7 @@ export class ProfileController extends BaseController {
     }
 
     this.render(res, 'profile/view', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: `${profile.name} | Crypto Bot`,
       profile,
     });
@@ -73,7 +73,7 @@ export class ProfileController extends BaseController {
   private async newForm(req: express.Request, res: express.Response): Promise<void> {
     const exchanges = this.profileService.getSupportedExchanges();
     this.render(res, 'profile/form', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: 'New Profile | Crypto Bot',
       profile: null,
       exchanges,
@@ -90,7 +90,7 @@ export class ProfileController extends BaseController {
     }
     const exchanges = this.profileService.getSupportedExchanges();
     this.render(res, 'profile/form', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: 'Edit Profile | Crypto Bot',
       profile,
       exchanges,
@@ -282,7 +282,7 @@ export class ProfileController extends BaseController {
     const pairs = await this.getPairsForProfile(profile);
 
     this.render(res, 'profile/bot_form', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: 'New Bot | Crypto Bot',
       profile,
       bot: null,
@@ -311,7 +311,7 @@ export class ProfileController extends BaseController {
     const pairs = await this.getPairsForProfile(profile);
 
     this.render(res, 'profile/bot_form', {
-      activePage: 'profiles',
+      activePage: 'settings', activeSettingsPage: 'profiles',
       title: 'Edit Bot | Crypto Bot',
       profile,
       bot,

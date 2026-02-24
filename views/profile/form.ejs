@@ -1,60 +1,58 @@
-<!-- Content -->
 <div class="p-4">
-    <div class="max-w-[600px] mx-auto">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-semibold"><%= isEdit ? 'Edit Profile' : 'New Profile' %></h1>
-            <a href="/profiles" class="text-gray-600 hover:text-gray-800 cursor-pointer">
-                <i class="fas fa-arrow-left mr-1"></i> Back
-            </a>
+    <div class="flex gap-6 max-w-[1100px]">
+        <%- include('../components/settings_sidebar', { activeSettingsPage }) %>
+
+        <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-semibold mb-4"><%= isEdit ? 'Edit Profile' : 'New Profile' %></h1>
+
+            <form action="<%= isEdit ? '/profiles/' + profile.id : '/profiles' %>" method="POST" autocomplete="off" class="bg-white rounded shadow p-6 max-w-[600px]">
+                <!-- Name -->
+                <div class="mb-4">
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Profile Name *</label>
+                    <input type="text" id="name" name="name" value="<%= profile ? profile.name : '' %>"
+                           class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           autocomplete="off" required>
+                </div>
+
+                <!-- Exchange (Searchable) -->
+                <div class="mb-4">
+                    <label for="exchange" class="block text-sm font-medium text-gray-700 mb-1">Exchange *</label>
+                    <select id="exchange" name="exchange" class="w-full" data-slim-select data-slim-placeholder="Search exchanges..." required>
+                        <option value="">Select an exchange...</option>
+                        <% exchanges.forEach(function(ex) { %>
+                            <option value="<%= ex %>" <%= profile && profile.exchange === ex ? 'selected' : '' %>><%= ex %></option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <!-- API Key -->
+                <div class="mb-4">
+                    <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                    <input type="text" id="apiKey" name="apiKey"
+                           value="<%= profile ? profile.apiKey || '' : '' %>"
+                           class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                           autocomplete="off">
+                </div>
+
+                <!-- Secret -->
+                <div class="mb-6">
+                    <label for="secret" class="block text-sm font-medium text-gray-700 mb-1">API Secret</label>
+                    <input type="text" id="secret" name="secret"
+                           value="<%= profile ? profile.secret || '' : '' %>"
+                           class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                           autocomplete="off">
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a href="/profiles" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                        Cancel
+                    </a>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
+                        <i class="fas fa-save mr-1"></i> <%= isEdit ? 'Save' : 'Create' %>
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <form action="<%= isEdit ? '/profiles/' + profile.id : '/profiles' %>" method="POST" autocomplete="off" class="bg-white rounded shadow p-6">
-            <!-- Name -->
-            <div class="mb-4">
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Profile Name *</label>
-                <input type="text" id="name" name="name" value="<%= profile ? profile.name : '' %>"
-                       class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       autocomplete="off" required>
-            </div>
-
-            <!-- Exchange (Searchable) -->
-            <div class="mb-4">
-                <label for="exchange" class="block text-sm font-medium text-gray-700 mb-1">Exchange *</label>
-                <select id="exchange" name="exchange" class="w-full" data-slim-select data-slim-placeholder="Search exchanges..." required>
-                    <option value="">Select an exchange...</option>
-                    <% exchanges.forEach(function(ex) { %>
-                        <option value="<%= ex %>" <%= profile && profile.exchange === ex ? 'selected' : '' %>><%= ex %></option>
-                    <% }); %>
-                </select>
-            </div>
-
-            <!-- API Key -->
-            <div class="mb-4">
-                <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                <input type="text" id="apiKey" name="apiKey"
-                       value="<%= profile ? profile.apiKey || '' : '' %>"
-                       class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                       autocomplete="off">
-            </div>
-
-            <!-- Secret -->
-            <div class="mb-6">
-                <label for="secret" class="block text-sm font-medium text-gray-700 mb-1">API Secret</label>
-                <input type="text" id="secret" name="secret"
-                       value="<%= profile ? profile.secret || '' : '' %>"
-                       class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                       autocomplete="off">
-            </div>
-
-            <!-- Submit Buttons -->
-            <div class="flex justify-end gap-3 pt-4">
-                <a href="/profiles" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-                    Cancel
-                </a>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm cursor-pointer">
-                    <i class="fas fa-save mr-1"></i> <%= isEdit ? 'Save' : 'Create' %>
-                </button>
-            </div>
-        </form>
     </div>
 </div>
