@@ -36,7 +36,7 @@
                     </div>
                     <div>
                         <label for="intervals" class="block text-sm font-medium text-gray-700 mb-1">Intervals</label>
-                        <select id="intervals" name="intervals" multiple class="w-full">
+                        <select id="intervals" name="intervals" multiple class="w-full" data-slim-select data-slim-placeholder="Select intervals...">
                             <% const availableIntervals = [
                                 { value: 1, label: '1m' },
                                 { value: 3, label: '3m' },
@@ -138,22 +138,6 @@ let symbolInput = document.getElementById('newPairSymbol');
 let symbolDropdown = document.getElementById('symbolDropdown');
 let selectedIndex = -1;
 let symbols = [];
-
-// Initialize Tom Select for intervals
-new TomSelect('#intervals', {
-    plugins: ['remove_button'],
-    persist: false,
-    create: false,
-    placeholder: 'Select intervals...',
-    render: {
-        option: function(data, escape) {
-            return '<div class="py-1">' + escape(data.text) + '</div>';
-        }
-    },
-    onInitialize: function() {
-        this.wrapper.classList.add('border', 'border-gray-300', 'rounded', 'text-sm');
-    }
-});
 
 // Simple autocomplete for symbol input
 let debounceTimer;

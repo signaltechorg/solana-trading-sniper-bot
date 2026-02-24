@@ -16,7 +16,7 @@
                         <div class="space-y-4">
                             <div>
                                 <label for="form-pair" class="block font-medium mb-1">Pair</label>
-                                <select class="w-full" id="form-pair" name="pair" data-placeholder="Search or select a pair..." required>
+                                <select class="w-full" id="form-pair" name="pair" data-slim-select data-slim-placeholder="Search or select a pair..." required>
                                     <option disabled selected value> -- select a pair -- </option>
                                     <% pairs.forEach(function(pair) { %>
                                         <option value="<%= pair.name %>"><%= pair.name %></option>
@@ -94,24 +94,10 @@ document.getElementById('form-strategy').addEventListener('change', function() {
 
     if (data) {
         descEl.textContent = data.description;
-        // Populate textarea with pretty-printed default options
         optionsEl.value = JSON.stringify(data.defaultOptions, null, 2);
     } else {
         descEl.textContent = '';
         optionsEl.value = '';
     }
 });
-
-// Initialize Tom Select for pair dropdown (single select with search)
-const pairSelect = document.getElementById('form-pair');
-if (pairSelect && typeof TomSelect !== 'undefined') {
-    new TomSelect(pairSelect, {
-        persist: false,
-        create: false,
-        placeholder: pairSelect.dataset.placeholder || 'Select a pair...',
-        onInitialize: function() {
-            this.wrapper.classList.add('border', 'border-gray-300', 'rounded');
-        }
-    });
-}
 </script>

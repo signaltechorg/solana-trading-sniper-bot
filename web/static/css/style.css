@@ -38,47 +38,114 @@
     white-space: nowrap;
 }
 
-/* Tom Select overrides to match form inputs */
-.ts-wrapper {
-    min-height: 38px;
+/* Slim Select - match Tailwind inputs, disable animations */
+.ss-main .ss-single-selected,
+.ss-main .ss-multi-selected {
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.25rem !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    min-height: 38px !important;
+    background: #fff !important;
 }
 
-.ts-wrapper .ts-control {
-    border: none !important;
-    padding: 0.5rem 0.75rem;
-    min-height: 38px;
+.ss-main .ss-single-selected:focus,
+.ss-main .ss-multi-selected:focus {
+    border-color: #3b82f6 !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
 
-.ts-wrapper .ts-control input {
-    font-size: 0.875rem;
+/* Placeholder */
+.ss-main .ss-single-selected-placeholder {
+    color: #6b7280 !important;
 }
 
-.ts-wrapper .item {
-    background-color: #e5e7eb;
-    border: none;
-    padding: 2px 8px;
-    margin: 2px 4px 2px 0;
-    border-radius: 4px;
-    font-size: 0.875rem;
+/* Multi-select badges */
+.ss-main .ss-value {
+    background-color: #2563eb !important;
+    color: #fff !important;
+    margin: 2px 4px 2px 0 !important;
+    border-radius: 4px !important;
+    font-size: 0.875rem !important;
+    padding: 2px 6px !important;
 }
 
-.ts-wrapper .item .remove {
-    border-left: 1px solid #d1d5db;
-    margin-left: 6px;
-    padding-left: 6px;
+.ss-main .ss-value-delete {
+    border-left: 1px solid rgba(255,255,255,0.3) !important;
+    margin-left: 6px !important;
+    padding-left: 6px !important;
 }
 
-.ts-wrapper .ts-dropdown {
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    margin-top: 2px;
+.ss-main .ss-value-delete svg {
+    stroke: #fff !important;
 }
 
-.ts-wrapper .ts-dropdown .option {
-    padding: 6px 12px;
+/* Dropdown - disable animations, fix positioning */
+.ss-main .ss-content {
+    border: 1px solid #d1d5db !important;
+    border-radius: 4px !important;
+    margin-top: 2px !important;
+    background: #fff !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+    transition: none !important;
+    animation: none !important;
 }
 
-.ts-wrapper .ts-dropdown .option.active,
-.ts-wrapper .ts-dropdown .option:hover {
-    background-color: #f3f4f6;
+.ss-main .ss-content.ss-open {
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+.ss-main .ss-content.ss-close {
+    display: none !important;
+}
+
+/* Search input */
+.ss-main .ss-search {
+    padding: 8px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    display: block !important;
+    position: relative !important;
+}
+
+.ss-main .ss-search input {
+    width: 100% !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.25rem !important;
+    font-size: 0.875rem !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+.ss-main .ss-search input:focus {
+    border-color: #3b82f6 !important;
+}
+
+/* Options list */
+.ss-main .ss-list {
+    max-height: 240px !important;
+    overflow-y: auto !important;
+}
+
+.ss-main .ss-option {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    cursor: pointer !important;
+}
+
+.ss-main .ss-option:hover,
+.ss-main .ss-option.ss-highlighted {
+    background-color: #f3f4f6 !important;
+}
+
+.ss-main .ss-option.ss-selected {
+    background-color: #eff6ff !important;
+}
+
+/* Arrow */
+.ss-main .ss-arrow {
+    transition: none !important;
 }

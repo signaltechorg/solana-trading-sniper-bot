@@ -15,7 +15,7 @@
                     <form method="get" class="space-y-4">
                         <div>
                             <label for="form-pair" class="block font-medium mb-1">Pair</label>
-                            <select class="w-full border border-gray-300 rounded px-3 py-2 chosen-select" id="form-pair" name="pair" required>
+                            <select class="w-full" id="form-pair" name="pair" data-slim-select data-slim-placeholder="Search pairs..." required>
                                 <% (pairs || []).forEach(function(pair) { %>
                                     <option value="<%= pair.exchange %>.<%= pair.symbol %>" <%= (typeof symbol !== 'undefined' && pair.symbol === symbol && typeof exchange !== 'undefined' && pair.exchange === exchange) ? 'selected' : '' %>><%= pair.exchange %>.<%= pair.symbol %></option>
                                 <% }); %>
@@ -107,5 +107,3 @@
         <% } %>
     </div>
 </div>
-
-<script src="/js/backtest-form.js?v=<%= assetVersion %>"></script>

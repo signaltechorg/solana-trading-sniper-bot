@@ -19,7 +19,7 @@
                 <h2 class="text-lg font-semibold mb-4 pb-2 border-b">Periods</h2>
                 <div>
                     <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">Active Periods</label>
-                    <select id="periods" name="periods" multiple class="w-full">
+                    <select id="periods" name="periods" multiple class="w-full" data-slim-select data-slim-placeholder="Select periods...">
                         <% periods.forEach(function(period) { %>
                             <option value="<%= period.value %>" <%= config.periods.includes(period.value) ? 'selected' : '' %>><%= period.label %></option>
                         <% }); %>
@@ -125,17 +125,6 @@ let exchangeSelect = document.getElementById('newPairExchange');
 let symbolDropdown = document.getElementById('symbolDropdown');
 let selectedIndex = -1;
 let symbols = [];
-
-// Initialize TomSelect for periods
-new TomSelect('#periods', {
-    plugins: ['remove_button'],
-    persist: false,
-    create: false,
-    placeholder: 'Select periods...',
-    onInitialize: function() {
-        this.wrapper.classList.add('border', 'border-gray-300', 'rounded', 'text-sm');
-    }
-});
 
 // Symbol autocomplete
 let debounceTimer;

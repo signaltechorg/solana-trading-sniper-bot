@@ -29,7 +29,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Pair</label>
-                    <select id="pair" name="pair" class="w-full" required data-placeholder="Search pairs...">
+                    <select id="pair" name="pair" class="w-full" data-slim-select data-slim-placeholder="Search pairs..." required>
                         <option value="">Select a pair...</option>
                         <% pairs.forEach(function(p) { %>
                         <option value="<%= p %>" <%= bot && bot.pair === p ? 'selected' : '' %>><%= p %></option>
@@ -107,16 +107,6 @@ document.getElementById('strategy').addEventListener('change', function() {
         }
     } else {
         optionsEl.value = '';
-    }
-});
-
-// Initialize Tom Select for pair dropdown
-new TomSelect('#pair', {
-    create: false,
-    sortField: { field: 'text', direction: 'asc' },
-    placeholder: 'Search pairs...',
-    onInitialize: function() {
-        this.wrapper.classList.add('border', 'border-gray-300', 'rounded', 'text-sm');
     }
 });
 </script>

@@ -20,7 +20,7 @@
             <!-- Exchange (Searchable) -->
             <div class="mb-4">
                 <label for="exchange" class="block text-sm font-medium text-gray-700 mb-1">Exchange *</label>
-                <select id="exchange" name="exchange" class="w-full" required>
+                <select id="exchange" name="exchange" class="w-full" data-slim-select data-slim-placeholder="Search exchanges..." required>
                     <option value="">Select an exchange...</option>
                     <% exchanges.forEach(function(ex) { %>
                         <option value="<%= ex %>" <%= profile && profile.exchange === ex ? 'selected' : '' %>><%= ex %></option>
@@ -58,14 +58,3 @@
         </form>
     </div>
 </div>
-
-<script>
-new TomSelect('#exchange', {
-    create: false,
-    sortField: { field: 'text', direction: 'asc' },
-    placeholder: 'Search exchanges...',
-    onInitialize: function() {
-        this.wrapper.classList.add('border', 'border-gray-300', 'rounded', 'text-sm');
-    }
-});
-</script>
