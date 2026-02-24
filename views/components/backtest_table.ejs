@@ -32,11 +32,11 @@
             <td class="border border-gray-200 px-3 py-2">
                 <% if (row.result && row.result._signal) { %>
                     <% if (row.result._signal === 'long') { %>
-                        <i class="fas fa-chevron-circle-up text-green-600"></i>
+                        <i class="fas fa-circle-chevron-up text-green-600"></i>
                     <% } else if (row.result._signal === 'short') { %>
-                        <i class="fas fa-chevron-circle-down text-red-600"></i>
+                        <i class="fas fa-circle-chevron-down text-red-600"></i>
                     <% } else if (row.result._signal === 'close') { %>
-                        <i class="fa fa-times"></i>
+                        <i class="fas fa-xmark"></i>
                     <% } %>
                 <% }  %>
             </td>
@@ -69,7 +69,7 @@
 
             <td class="border border-gray-200 px-3 py-2 break-all">
                 <span class="debug-toggle hide">
-                    <a href="#" class="button-debug-toggle"><i class="fa fa-eye"></i></a>
+                    <a href="#" class="button-debug-toggle"><i class="fas fa-eye"></i></a>
                     <span class="debug-text text-gray-500"><%= JSON.stringify(row) %></span>
                 </span>
             </td>

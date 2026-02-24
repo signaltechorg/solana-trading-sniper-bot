@@ -97,11 +97,11 @@
                                     <td class="border border-gray-200 px-3 py-2"><%= row.price.toFixed(2) %></td>
                                     <td class="border border-gray-200 px-3 py-2">
                                         <% if (row.signal === 'long') { %>
-                                            <i class="fas fa-chevron-circle-up text-green-600"></i>
+                                            <i class="fas fa-circle-chevron-up text-green-600"></i>
                                         <% } else if (row.signal === 'short') { %>
-                                            <i class="fas fa-chevron-circle-down text-red-600"></i>
+                                            <i class="fas fa-circle-chevron-down text-red-600"></i>
                                         <% } else if (row.signal === 'close') { %>
-                                            <i class="fa fa-times text-gray-500"></i>
+                                            <i class="fas fa-xmark text-gray-500"></i>
                                         <% } %>
                                     </td>
                                     <td class="border border-gray-200 px-3 py-2 break-all text-gray-500 text-xs">
@@ -143,11 +143,11 @@
                                 <td class="border border-gray-200 px-3 py-2"><%= row.price.toFixed(2) %></td>
                                 <td class="border border-gray-200 px-3 py-2">
                                     <% if (row.signal === 'long') { %>
-                                        <i class="fas fa-chevron-circle-up text-green-600"></i>
+                                        <i class="fas fa-circle-chevron-up text-green-600"></i>
                                     <% } else if (row.signal === 'short') { %>
-                                        <i class="fas fa-chevron-circle-down text-red-600"></i>
+                                        <i class="fas fa-circle-chevron-down text-red-600"></i>
                                     <% } else if (row.signal === 'close') { %>
-                                        <i class="fa fa-times text-gray-500"></i>
+                                        <i class="fas fa-xmark text-gray-500"></i>
                                     <% } %>
                                 </td>
                                 <% if (indicatorKeys) { indicatorKeys.forEach(function(key) { %>

@@ -54,7 +54,7 @@ Central service registry using dependency injection patterns:
 #### Web UI (Express.js + EJS) / Code Structure Conventions
 - **Controllers** (src/controller/): Handle HTTP requests
 - **Views** (views/): EJS templates with layout system `express-ejs-layouts`
-- Tailwind CSS 4 for styling
+- Tailwind CSS 4 for styling with "Font Awesome 7"
 - `web/` webserver root with assets
 - **Database** schema in `src/utils/database_schema.ts` with `src/repository` as Database Repository Pattern
 - **.prettierrc**: Code formatting (single quotes, 160 width)

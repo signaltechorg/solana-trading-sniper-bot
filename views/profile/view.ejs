@@ -19,7 +19,7 @@
                         </button>
                     </form>
                     <a href="/profiles/<%= profile.id %>/edit" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
-                        <i class="fas fa-edit mr-1"></i> Edit
+                        <i class="fas fa-pen-to-square mr-1"></i> Edit
                     </a>
                 </div>
             </div>
@@ -76,7 +76,7 @@
                 <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <span class="font-medium">Balances</span>
                     <button type="button" id="refresh-balances" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        <i class="fas fa-arrows-rotate mr-1"></i> Refresh
                     </button>
                 </div>
 
@@ -95,7 +95,7 @@
                 <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <span class="font-medium">Orders</span>
                     <button type="button" id="refresh-orders" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        <i class="fas fa-arrows-rotate mr-1"></i> Refresh
                     </button>
                 </div>
 
@@ -114,7 +114,7 @@
                 <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <span class="font-medium">Positions</span>
                     <button type="button" id="refresh-positions" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        <i class="fas fa-arrows-rotate mr-1"></i> Refresh
                     </button>
                 </div>
 
@@ -171,7 +171,7 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 text-right whitespace-nowrap">
-                                    <a href="/profiles/<%= profile.id %>/bots/<%= bot.id %>/edit" class="text-blue-600 hover:text-blue-800 mr-2" title="Edit"><i class="fas fa-edit"></i></a>
+                                    <a href="/profiles/<%= profile.id %>/bots/<%= bot.id %>/edit" class="text-blue-600 hover:text-blue-800 mr-2" title="Edit"><i class="fas fa-pen-to-square"></i></a>
                                     <form action="/profiles/<%= profile.id %>/bots/<%= bot.id %>/delete" method="POST" class="inline" onsubmit="return confirm('Delete this bot?')">
                                         <button type="submit" class="text-red-600 hover:text-red-800 cursor-pointer" title="Delete"><i class="fas fa-trash"></i></button>
                                     </form>
@@ -249,7 +249,7 @@ function loadBalances() {
         contentEl.innerHTML = `
             <div class="p-4">
                 <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
-                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch balances.
+                    <i class="fas fa-circle-info mr-2"></i> API credentials required to fetch balances.
                     <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
                 </div>
             </div>
@@ -271,7 +271,7 @@ function loadBalances() {
                 contentEl.innerHTML = `
                     <div class="p-4">
                         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                            <i class="fas fa-circle-exclamation mr-2"></i>${data.error}
                         </div>
                     </div>
                 `;
@@ -324,7 +324,7 @@ function loadBalances() {
             contentEl.innerHTML = `
                 <div class="p-4">
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load balances: ${err.message}
+                        <i class="fas fa-circle-exclamation mr-2"></i>Failed to load balances: ${err.message}
                     </div>
                 </div>
             `;
@@ -385,7 +385,7 @@ function loadOrders() {
         contentEl.innerHTML = `
             <div class="p-4">
                 <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
-                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch orders.
+                    <i class="fas fa-circle-info mr-2"></i> API credentials required to fetch orders.
                     <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
                 </div>
             </div>
@@ -407,7 +407,7 @@ function loadOrders() {
                 contentEl.innerHTML = `
                     <div class="p-4">
                         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                            <i class="fas fa-circle-exclamation mr-2"></i>${data.error}
                         </div>
                     </div>
                 `;
@@ -444,7 +444,7 @@ function loadOrders() {
 
             allOrders.forEach(function(order) {
                 const actionBtn = order.isOpen
-                    ? `<button onclick="cancelOrder('${order.pair}', '${order.id}')" class="text-gray-400 hover:text-red-600" title="Cancel"><i class="fas fa-window-close"></i></button>`
+                    ? `<button onclick="cancelOrder('${order.pair}', '${order.id}')" class="text-gray-400 hover:text-red-600" title="Cancel"><i class="fas fa-rectangle-xmark"></i></button>`
                     : '';
                 html += `
                     <tr class="hover:bg-gray-50">
@@ -469,7 +469,7 @@ function loadOrders() {
             contentEl.innerHTML = `
                 <div class="p-4">
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load orders: ${err.message}
+                        <i class="fas fa-circle-exclamation mr-2"></i>Failed to load orders: ${err.message}
                     </div>
                 </div>
             `;
@@ -511,7 +511,7 @@ function loadPositions() {
         contentEl.innerHTML = `
             <div class="p-4">
                 <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
-                    <i class="fas fa-info-circle mr-2"></i> API credentials required to fetch positions.
+                    <i class="fas fa-circle-info mr-2"></i> API credentials required to fetch positions.
                     <a href="/profiles/${profileId}/edit" class="underline">Configure now</a>
                 </div>
             </div>
@@ -533,7 +533,7 @@ function loadPositions() {
                 contentEl.innerHTML = `
                     <div class="p-4">
                         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                            <i class="fas fa-exclamation-circle mr-2"></i>${data.error}
+                            <i class="fas fa-circle-exclamation mr-2"></i>${data.error}
                         </div>
                     </div>
                 `;
@@ -610,7 +610,7 @@ function loadPositions() {
             contentEl.innerHTML = `
                 <div class="p-4">
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to load positions: ${err.message}
+                        <i class="fas fa-circle-exclamation mr-2"></i>Failed to load positions: ${err.message}
                     </div>
                 </div>
             `;

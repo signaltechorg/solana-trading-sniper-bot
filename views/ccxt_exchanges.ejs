@@ -37,14 +37,14 @@
                                         <% if (exchange.has.fetchOHLCV) { %>
                                             <i class="fas fa-check text-green-500"></i>
                                         <% } else { %>
-                                            <i class="fas fa-times text-gray-300"></i>
+                                            <i class="fas fa-xmark text-gray-300"></i>
                                         <% } %>
                                     </td>
                                     <td class="border border-gray-200 px-3 py-2 text-center">
                                         <% if (exchange.has.createOrder) { %>
                                             <i class="fas fa-check text-green-500"></i>
                                         <% } else { %>
-                                            <i class="fas fa-times text-gray-300"></i>
+                                            <i class="fas fa-xmark text-gray-300"></i>
                                         <% } %>
                                     </td>
                                 </tr>
@@ -173,7 +173,7 @@ async function loadMarkets() {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="border border-gray-200 px-3 py-8 text-center ${isAuthError ? 'text-orange-500' : 'text-red-500'}">
-                    <i class="fas ${isAuthError ? 'fa-lock' : 'fa-exclamation-triangle'} text-2xl mb-2"></i>
+                    <i class="fas ${isAuthError ? 'fa-lock' : 'fa-triangle-exclamation'} text-2xl mb-2"></i>
                     <div>${isAuthError ? 'This exchange requires API authentication' : 'Error loading markets'}</div>
                     <div class="text-xs text-gray-400 mt-1">${errorMsg}</div>
                 </td>
@@ -206,7 +206,7 @@ function renderMarkets(markets) {
                 ${getTypeBadge(m)}
             </td>
             <td class="border border-gray-200 px-3 py-2 text-center">
-                ${m.contract ? (m.linear ? '<i class="fas fa-check text-green-500" title="Linear"></i>' : '<i class="fas fa-times text-red-400" title="Inverse"></i>') : '<span class="text-gray-300">-</span>'}
+                ${m.contract ? (m.linear ? '<i class="fas fa-check text-green-500" title="Linear"></i>' : '<i class="fas fa-xmark text-red-400" title="Inverse"></i>') : '<span class="text-gray-300">-</span>'}
             </td>
             <td class="border border-gray-200 px-3 py-2 whitespace-nowrap">${m.settle || '-'}</td>
         </tr>

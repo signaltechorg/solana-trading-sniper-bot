@@ -28,11 +28,11 @@
                         <td class="border border-gray-200 px-3 py-2"><a target="blank" href="/tradingview/<%= signal.exchange %>:<%= signal.symbol %>" class="text-blue-600 hover:underline"><%= signal.symbol %></a></td>
                         <td class="border border-gray-200 px-3 py-2">
                             <% if (signal.side === 'long') { %>
-                                <i class="fas fa-chevron-circle-up text-green-600"></i>
+                                <i class="fas fa-circle-chevron-up text-green-600"></i>
                             <% } else if (signal.side === 'short') { %>
-                                <i class="fas fa-chevron-circle-down text-red-600"></i>
+                                <i class="fas fa-circle-chevron-down text-red-600"></i>
                             <% } else if (signal.side === 'close') { %>
-                                <i class="fa fa-times" aria-hidden="true"></i>
+                                <i class="fas fa-xmark" aria-hidden="true"></i>
                             <% } %>
                         </td>
                         <td class="border border-gray-200 px-3 py-2"><%= signal.strategy %></td>

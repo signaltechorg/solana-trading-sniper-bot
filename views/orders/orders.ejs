@@ -12,7 +12,7 @@
 
         <% if (typeof pairErrors !== 'undefined' && pairErrors.length > 0) { %>
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                <div class="font-medium mb-2"><i class="fas fa-exclamation-triangle"></i> Errors loading pairs:</div>
+                <div class="font-medium mb-2"><i class="fas fa-triangle-exclamation"></i> Errors loading pairs:</div>
                 <ul class="text-sm list-disc list-inside">
                     <% pairErrors.forEach(function(err) { %>
                         <li><%= err %></li>
@@ -23,7 +23,7 @@
 
         <% if (typeof error !== 'undefined' && error) { %>
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                <i class="fas fa-exclamation-circle"></i> <%= error %>
+                <i class="fas fa-circle-exclamation"></i> <%= error %>
             </div>
         <% } %>
 
@@ -113,8 +113,8 @@
                         </div>
 
                         <div class="px-4 py-3 border-t border-gray-200 flex gap-2">
-                            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 cursor-pointer text-sm" name="side" value="buy"><i class="fas fa-shopping-cart"></i> Buy</button>
-                            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer text-sm" name="side" value="sell"><i class="far fa-trash-alt"></i> Sell</button>
+                            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 cursor-pointer text-sm" name="side" value="buy"><i class="fas fa-cart-shopping"></i> Buy</button>
+                            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer text-sm" name="side" value="sell"><i class="far fa-trash-can"></i> Sell</button>
                         </div>
                     </form>
                 </div>
@@ -128,7 +128,7 @@
                         <span class="font-medium">Open Orders <span id="orders-count" class="text-gray-400"></span></span>
                         <div class="flex items-center gap-2">
                             <button id="refresh-orders" class="text-gray-400 hover:text-blue-600 cursor-pointer" title="Refresh Orders">
-                                <i class="fas fa-sync-alt"></i>
+                                <i class="fas fa-arrows-rotate"></i>
                             </button>
                             <a href="/orders/<%= profile.id %>/<%= encodeURIComponent(pair) %>/cancel-all" class="text-gray-400 hover:text-red-600" title="Cancel All" onclick="return confirm('Cancel all orders?')">
                                 <i class="fas fa-trash"></i>

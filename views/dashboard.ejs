@@ -62,7 +62,7 @@
                             const ta = row.ta[period];
                         %>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.ema_55 && ta.ema_55.value && ta.ema_200 && ta.ema_200.value && ta.ema_55.value > ta.ema_200.value) ? 'text-green-600' : 'text-red-600' %>">
-                                <i class="fas <%= (ta && ta.ema_55 && ta.ema_55.value && ta.ema_200 && ta.ema_200.value && ta.ema_55.value > ta.ema_200.value) ? 'fa-arrow-alt-circle-up' : 'fa-arrow-alt-circle-down' %>"></i>
+                                <i class="fas <%= (ta && ta.ema_55 && ta.ema_55.value && ta.ema_200 && ta.ema_200.value && ta.ema_55.value > ta.ema_200.value) ? 'fa-circle-arrow-up' : 'fa-circle-arrow-down' %>"></i>
                             </td>
                             <td class="border border-gray-200 px-2 py-1">
                                 <% if (ta && ta.sma_200 && ta.sma_200.value) { %>
@@ -111,7 +111,7 @@
                                 <% } else if (ta && ta.stoch_rsi && ta.stoch_rsi.value && ta.stoch_rsi.value.stoch_k <= 20 && ta.stoch_rsi.value.stoch_d <= 20) { %>
                                     <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="far fa-circle text-green-600"></i>
                                 <% } else if (ta && ta.stoch_rsi && ta.stoch_rsi.value) { %>
-                                    <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="far fa-arrow-alt-circle-up <%= ta.stoch_rsi.value.stoch_k >= ta.stoch_rsi.value.stoch_d ? 'trend-up text-green-600' : 'trend-down text-red-600' %>"></i>
+                                    <i title="<%= Math.round(ta.stoch_rsi.value.stoch_k * 100) / 100 %>" class="far fa-circle-arrow-up <%= ta.stoch_rsi.value.stoch_k >= ta.stoch_rsi.value.stoch_d ? 'trend-up text-green-600' : 'trend-down text-red-600' %>"></i>
                                 <% } else { %>-<% } %>
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.ao && ta.ao.value) ? (ta.ao.value > 0 ? 'text-green-600' : 'text-red-600') : '' %>">
@@ -121,7 +121,7 @@
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.macd && ta.macd.value && ta.macd.value.histogram !== undefined) ? (ta.macd.value.histogram > 0 ? 'text-green-600' : 'text-red-600') : '' %>">
                                 <% if (ta && ta.macd && ta.macd.value && ta.macd.value.histogram !== undefined) { %>
-                                    <i title="<%= ta.macd.crossed || '-' %>m ago" class="far fa-arrow-alt-circle-up <%= ta.macd.trend == 'up' ? 'trend-up' : 'trend-down' %> <%= ((ta.macd.value.histogram > 0 && ta.macd.trend == 'down') || (ta.macd.value.histogram < 0 && ta.macd.trend == 'up')) ? 'font-bold' : '' %> <%= ta.macd.crossed_index && ta.macd.crossed_index < 5 ? 'blink' : '' %>"></i>
+                                    <i title="<%= ta.macd.crossed || '-' %>m ago" class="far fa-circle-arrow-up <%= ta.macd.trend == 'up' ? 'trend-up' : 'trend-down' %> <%= ((ta.macd.value.histogram > 0 && ta.macd.trend == 'down') || (ta.macd.value.histogram < 0 && ta.macd.trend == 'up')) ? 'font-bold' : '' %> <%= ta.macd.crossed_index && ta.macd.crossed_index < 5 ? 'blink' : '' %>"></i>
                                 <% } else { %>-<% } %>
                             </td>
                             <td class="border border-gray-200 px-2 py-1 <%= (ta && ta.mfi && ta.mfi.value) ? [

@@ -10,7 +10,7 @@
 
         <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                <div class="font-medium mb-2"><i class="fas fa-exclamation-triangle"></i> Errors loading pairs:</div>
+                <div class="font-medium mb-2"><i class="fas fa-triangle-exclamation"></i> Errors loading pairs:</div>
                 <ul class="text-sm list-disc list-inside">
                     <% errors.forEach(function(err) { %>
                         <li><%= err %></li>
@@ -52,7 +52,7 @@
                         </table>
                     <% } else { %>
                         <div class="px-4 py-8 text-center text-gray-500">
-                            <i class="fas fa-exclamation-circle text-4xl mb-3 text-gray-300"></i>
+                            <i class="fas fa-circle-exclamation text-4xl mb-3 text-gray-300"></i>
                             <p>No pairs found.</p>
                             <a href="/profiles" class="text-blue-600 hover:underline">Configure profiles</a>
                         </div>
