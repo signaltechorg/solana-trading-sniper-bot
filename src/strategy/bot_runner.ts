@@ -96,9 +96,10 @@ export class BotRunner {
   }
 
   private async runBot(bot: Bot, profile: Profile): Promise<void> {
-    const marketData = await this.profileService.fetchTicker(profile.id, bot.pair);
-
     const isWatchOnly = bot.mode === 'watch';
+
+    // Always use public exchange for ticker (no auth needed)
+    const marketData = await this.profileService.fetchTickerPublic(profile.exchange, bot.pair);
 
     // Execute strategy
     const signal = await this.strategyExecutor.executeStrategy(

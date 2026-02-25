@@ -141,10 +141,19 @@ export class ProfileService {
   }
 
   /**
-   * Fetch ticker/market data for a pair
+   * Fetch ticker/market data for a pair using authenticated exchange
    */
   async fetchTicker(profileId: string, pair: string): Promise<MarketData> {
     const exchange = await this.getExchangeForProfile(profileId);
+    return fetchMarketData(exchange, pair);
+  }
+
+  /**
+   * Fetch ticker/market data using public (unauthenticated) exchange.
+   * Use this for watch mode bots that don't need authentication.
+   */
+  async fetchTickerPublic(exchangeName: string, pair: string): Promise<MarketData> {
+    const exchange = await this.exchangeInstanceService.getPublicExchange(exchangeName);
     return fetchMarketData(exchange, pair);
   }
 
