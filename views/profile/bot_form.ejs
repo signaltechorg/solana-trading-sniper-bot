@@ -73,15 +73,13 @@
                     <p class="text-xs text-gray-500 mt-1">Optional: Override default strategy options</p>
                 </div>
 
-                <% if (isEdit) { %>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Active</label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="status" <%= bot && bot.status === 'running' ? 'checked' : '' %> class="mr-2">
+                        <input type="checkbox" name="status" <%= !bot || bot.status === 'running' ? 'checked' : '' %> class="mr-2">
                         <span class="text-sm">Bot is running</span>
                     </label>
                 </div>
-                <% } %>
 
                 <div class="flex justify-end gap-2 pt-4 border-t border-gray-200">
                     <a href="/profiles/<%= profile.id %>" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</a>
