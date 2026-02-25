@@ -7,6 +7,8 @@ import { ExchangeInstanceService } from './exchange_instance_service';
 export type PrefillJob = [string, string, string];
 
 const CANDLES_LIMIT = 500;
+// Delay between API calls to avoid rate limits (ms)
+const THROTTLE_MS = 250;
 
 export class CcxtCandlePrefillService {
   private queue: PrefillJob[] = [];
@@ -59,7 +61,16 @@ export class CcxtCandlePrefillService {
       } catch (e: any) {
         this.logger.error(`[CcxtCandlePrefill] ${this.key(job)}: ${e.message || String(e)}`, { job });
       }
+
+      // Throttle between requests to avoid rate limits
+      if (this.queue.length > 0) {
+        await this.sleep(THROTTLE_MS);
+      }
     }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
