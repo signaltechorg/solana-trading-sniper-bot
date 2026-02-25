@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    const slimSelectInstances = [];
+
     document.querySelectorAll('[data-slim-select]').forEach(function (select) {
         const isMultiple = select.hasAttribute('multiple');
         const placeholder = select.dataset.slimPlaceholder || select.dataset.placeholder || 'Select...';
@@ -20,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function () {
             settings: {
                 placeholder: placeholder,
                 closeOnSelect: !isMultiple,
-                openPosition: 'down'
+                openPosition: 'down',
+                mandatory: select.hasAttribute('required')
             }
         };
 
@@ -54,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        new SlimSelect(options);
+        const instance = new SlimSelect(options);
+        slimSelectInstances.push({ select: select, instance: instance });
     });
 });
