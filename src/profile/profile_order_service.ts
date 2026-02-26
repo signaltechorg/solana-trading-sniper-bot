@@ -1,5 +1,6 @@
 import * as ccxt from 'ccxt';
-import { MarketData, OrderParams, OrderResult, OrderInfo, OrderSide, PositionInfo } from './types';
+import { MarketData, OrderParams, OrderResult, OrderInfo, PositionInfo } from './types';
+import { Logger } from '../modules/services';
 
 /**
  * Fetches current bid/ask prices for a trading pair
@@ -41,126 +42,132 @@ export function roundAmountDown(value: number, precision: number | undefined): n
 }
 
 /**
- * Places a limit order on the exchange
+ * Service for placing orders on exchanges.
+ * Logger is injected via constructor.
  */
-export async function placeLimitOrder(
-  exchange: ccxt.Exchange,
-  params: OrderParams
-): Promise<OrderResult> {
-  if (!params.price) {
-    throw new Error('Price is required for limit orders');
-  }
+export class ProfileOrderService {
+  constructor(private readonly logger: Logger) {}
 
-  // Load markets for precision info
-  const markets = await exchange.loadMarkets();
-  const market = markets[params.pair];
-
-  if (!market) {
-    throw new Error(`Market ${params.pair} not found`);
-  }
-
-  // Calculate base currency amount
-  let baseAmount: number;
-  if (params.isQuoteCurrency) {
-    baseAmount = params.amount / params.price;
-  } else {
-    baseAmount = params.amount;
-  }
-
-  // Round amount to precision
-  const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
-  const roundedPrice = roundToPrecision(params.price, market.precision?.price);
-
-  if (!roundedBaseAmount || roundedBaseAmount <= 0) {
-    const minAmount = market.limits?.amount?.min;
-    throw new Error(
-      `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
-      (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
-    );
-  }
-
-  const order = await exchange.createOrder(
-    params.pair,
-    'limit',
-    params.side,
-    roundedBaseAmount,
-    roundedPrice
-  );
-
-  return {
-    id: order.id,
-    status: order.status,
-    type: order.type,
-    side: order.side,
-    price: order.price,
-    amount: order.amount,
-    filled: order.filled,
-    remaining: order.remaining,
-    raw: order
-  };
-}
-
-/**
- * Places a market order on the exchange
- * If isQuoteCurrency is true, converts quote amount to base amount first
- */
-export async function placeMarketOrder(
-  exchange: ccxt.Exchange,
-  params: OrderParams
-): Promise<OrderResult> {
-  // Load markets for precision info
-  const markets = await exchange.loadMarkets();
-  const market = markets[params.pair];
-
-  if (!market) {
-    throw new Error(`Market ${params.pair} not found`);
-  }
-
-  let baseAmount: number;
-
-  if (params.isQuoteCurrency) {
-    // Convert quote currency amount to base amount using current price
-    const ticker = await exchange.fetchTicker(params.pair);
-    const price = ticker.last || ticker.close;
-
-    if (!price) {
-      throw new Error('Could not fetch current price for market order conversion');
+  /**
+   * Places a limit order on the exchange
+   */
+  async placeLimitOrder(exchange: ccxt.Exchange, params: OrderParams): Promise<OrderResult> {
+    if (!params.price) {
+      throw new Error('Price is required for limit orders');
     }
 
-    baseAmount = params.amount / price;
-  } else {
-    baseAmount = params.amount;
-  }
+    // Load markets for precision info
+    const markets = await exchange.loadMarkets();
+    const market = markets[params.pair];
 
-  // Round amount to precision
-  const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
+    if (!market) {
+      throw new Error(`Market ${params.pair} not found`);
+    }
 
-  if (!roundedBaseAmount || roundedBaseAmount <= 0) {
-    const minAmount = market.limits?.amount?.min;
-    throw new Error(
-      `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
-      (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
+    // Calculate base currency amount
+    let baseAmount: number;
+    if (params.isQuoteCurrency) {
+      baseAmount = params.amount / params.price;
+    } else {
+      baseAmount = params.amount;
+    }
+
+    // Round amount to precision
+    const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
+    const roundedPrice = roundToPrecision(params.price, market.precision?.price);
+
+    if (!roundedBaseAmount || roundedBaseAmount <= 0) {
+      const minAmount = market.limits?.amount?.min;
+      throw new Error(
+        `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
+        (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
+      );
+    }
+
+    const order = await exchange.createOrder(
+      params.pair,
+      'limit',
+      params.side,
+      roundedBaseAmount,
+      roundedPrice
     );
+
+    this.logger.info(`Order: ${params.side} ${roundedBaseAmount} ${params.pair} @ ${roundedPrice} (limit)`);
+
+    return {
+      id: order.id,
+      status: order.status,
+      type: order.type,
+      side: order.side,
+      price: order.price,
+      amount: order.amount,
+      filled: order.filled,
+      remaining: order.remaining,
+      raw: order
+    };
   }
 
-  const order = await exchange.createOrder(
-    params.pair,
-    'market',
-    params.side,
-    roundedBaseAmount
-  );
+  /**
+   * Places a market order on the exchange
+   * If isQuoteCurrency is true, converts quote amount to base amount first
+   */
+  async placeMarketOrder(exchange: ccxt.Exchange, params: OrderParams): Promise<OrderResult> {
+    // Load markets for precision info
+    const markets = await exchange.loadMarkets();
+    const market = markets[params.pair];
 
-  return {
-    id: order.id,
-    status: order.status,
-    type: order.type,
-    side: order.side,
-    price: order.price,
-    amount: order.amount,
-    filled: order.filled,
-    remaining: order.remaining,
-    raw: order
-  };
+    if (!market) {
+      throw new Error(`Market ${params.pair} not found`);
+    }
+
+    let baseAmount: number;
+
+    if (params.isQuoteCurrency) {
+      // Convert quote currency amount to base amount using current price
+      const ticker = await exchange.fetchTicker(params.pair);
+      const price = ticker.last || ticker.close;
+
+      if (!price) {
+        throw new Error('Could not fetch current price for market order conversion');
+      }
+
+      baseAmount = params.amount / price;
+    } else {
+      baseAmount = params.amount;
+    }
+
+    // Round amount to precision
+    const roundedBaseAmount = roundAmountDown(baseAmount, market.precision?.amount);
+
+    if (!roundedBaseAmount || roundedBaseAmount <= 0) {
+      const minAmount = market.limits?.amount?.min;
+      throw new Error(
+        `Order amount too small for ${params.pair}. Minimum is ${minAmount} ${market.base}` +
+        (params.isQuoteCurrency ? ` (increase your ${market.quote} amount)` : '')
+      );
+    }
+
+    const order = await exchange.createOrder(
+      params.pair,
+      'market',
+      params.side,
+      roundedBaseAmount
+    );
+
+    this.logger.info(`Order: ${params.side} ${roundedBaseAmount} ${params.pair} @ market`);
+
+    return {
+      id: order.id,
+      status: order.status,
+      type: order.type,
+      side: order.side,
+      price: order.price,
+      amount: order.amount,
+      filled: order.filled,
+      remaining: order.remaining,
+      raw: order
+    };
+  }
 }
 
 /**

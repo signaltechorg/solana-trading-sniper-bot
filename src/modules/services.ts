@@ -25,6 +25,7 @@ import { CcxtCandlePrefillService } from './system/ccxt_candle_prefill_service';
 import { CcxtCandleWatchService } from './system/ccxt_candle_watch_service';
 import { SymbolSearchService } from './system/symbol_search_service';
 import { ProfileService } from '../profile/profile_service';
+import { ProfileOrderService } from '../profile/profile_order_service';
 import { ProfilePairService } from './profile_pair_service';
 import { BotRunner } from '../strategy/bot_runner';
 import { TechnicalAnalysisValidator } from '../utils/technical_analysis_validator';
@@ -145,6 +146,7 @@ let fileCache: FileCache;
 let botRunner: BotRunner;
 let exchangeInstanceService: ExchangeInstanceService;
 let binancePriceService: BinancePriceService;
+let profileOrderService: ProfileOrderService;
 
 const parameters: Parameters = {
   projectDir: ''
@@ -201,6 +203,7 @@ export interface Services {
   getFileCache(): FileCache;
   getBotRunner(): BotRunner;
   getBinancePriceService(): BinancePriceService;
+  getProfileOrderService(): ProfileOrderService;
 }
 
 const services: Services = {
@@ -546,7 +549,12 @@ const services: Services = {
       return profileService;
     }
 
-    return (profileService = new ProfileService(this.getSystemUtil(), this.getExchangeInstanceService(), this.getBinancePriceService()));
+    return (profileService = new ProfileService(
+      this.getSystemUtil(),
+      this.getExchangeInstanceService(),
+      this.getBinancePriceService(),
+      this.getProfileOrderService()
+    ));
   },
 
   getProfilePairService: function (): ProfilePairService {
@@ -621,6 +629,14 @@ const services: Services = {
     }
 
     return (binancePriceService = new BinancePriceService(this.getFileCache()));
+  },
+
+  getProfileOrderService: function (): ProfileOrderService {
+    if (profileOrderService) {
+      return profileOrderService;
+    }
+
+    return (profileOrderService = new ProfileOrderService(this.getLogger()));
   }
 };
 

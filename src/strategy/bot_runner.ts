@@ -83,7 +83,7 @@ export class BotRunner {
 
       if (minutesSinceEpoch % periodMin !== 0) continue;
 
-      this.logger.info(`BotRunner: triggering "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
+      this.logger.debug(`BotRunner: triggering "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
 
       try {
         await this.runBot(bot, profile);
@@ -91,7 +91,7 @@ export class BotRunner {
         this.logger.error(`BotRunner: bot "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair}) failed: ${err}`);
       }
 
-      this.logger.info(`BotRunner: triggered "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
+      this.logger.debug(`BotRunner: triggered "${bot.name}" (${bot.strategy} ${profile.exchange}:${bot.pair} ${bot.interval})`);
     }
   }
 

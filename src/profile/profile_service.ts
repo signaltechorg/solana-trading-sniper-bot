@@ -5,8 +5,7 @@ import { ExchangeInstanceService } from '../modules/system/exchange_instance_ser
 import { BinancePriceService } from '../utils/binance_price_service';
 import {
   fetchMarketData,
-  placeLimitOrder,
-  placeMarketOrder,
+  ProfileOrderService,
   fetchOpenOrders as fetchOpenOrdersCCXT,
   fetchClosedOrders as fetchClosedOrdersCCXT,
   cancelOrder as cancelOrderCCXT,
@@ -20,6 +19,7 @@ export class ProfileService {
     private configService: ConfigService,
     private exchangeInstanceService: ExchangeInstanceService,
     private binancePriceService: BinancePriceService,
+    private orderService: ProfileOrderService
   ) {}
 
   private generateId(): string {
@@ -192,9 +192,9 @@ export class ProfileService {
     const exchange = await this.getExchangeForProfile(profileId);
 
     if (params.type === 'market') {
-      return placeMarketOrder(exchange, params);
+      return this.orderService.placeMarketOrder(exchange, params);
     } else {
-      return placeLimitOrder(exchange, params);
+      return this.orderService.placeLimitOrder(exchange, params);
     }
   }
 
