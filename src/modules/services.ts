@@ -212,10 +212,12 @@ const services: Services = {
     parameters.portOverride = portOverride;
 
     // Load config if exists, otherwise use empty config
+    const confPath = `${parameters.projectDir}/var/conf.json`;
     try {
-      config = JSON.parse(fs.readFileSync(`${parameters.projectDir}/var/conf.json`, 'utf8'));
-    } catch {
+      config = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+    } catch (err) {
       config = {};
+      console.warn(`[boot] Config file not loaded from "${confPath}": ${err}. Starting with empty config.`);
     }
 
     this.getDatabase();
@@ -439,7 +441,7 @@ const services: Services = {
     return nodemailer.createTransport({
       host: config.notify?.mail?.server,
       port: config.notify?.mail?.port,
-      secure: config.notify?.mail?.port == 465,
+      secure: config.notify?.mail?.port === 465,
       auth: {
         user: config.notify?.mail?.username,
         pass: config.notify?.mail?.password
@@ -452,7 +454,7 @@ const services: Services = {
     const { token } = config.notify?.telegram || {};
 
     if (!token) {
-      console.log('Telegram: No api token given');
+      this.getLogger().info('Telegram: No api token given');
       return;
     }
 
