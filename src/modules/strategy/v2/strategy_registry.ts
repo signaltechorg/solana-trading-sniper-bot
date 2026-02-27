@@ -50,21 +50,39 @@ export class StrategyRegistry {
   // ============== File Resolution ==============
 
   /**
+   * Validate that a strategy name contains only safe characters.
+   * Rejects names with path traversal sequences or special characters.
+   */
+  private isSafeStrategyName(name: string): boolean {
+    return /^[a-zA-Z0-9_-]+$/.test(name);
+  }
+
+  /**
+   * Validate that a resolved file path is within the allowed strategies directory.
+   * Prevents path traversal attacks.
+   */
+  private isPathWithinStrategiesDir(filePath: string): boolean {
+    const strategiesDir = path.resolve(process.cwd(), 'var/strategies');
+    const resolved = path.resolve(filePath);
+    return resolved.startsWith(strategiesDir + path.sep) || resolved === strategiesDir;
+  }
+
+  /**
    * Resolve strategy name/path to a file path
    */
   private resolveFilePath(strategy: string): string | null {
-    // Direct file path
-    if (fs.existsSync(strategy)) {
-      return strategy;
+    // Reject unsafe strategy names (path traversal, special chars)
+    if (!this.isSafeStrategyName(strategy)) {
+      return null;
     }
     // var/strategies/{name}/{name}.ts
     const varPath = path.join('var/strategies', strategy, `${strategy}.ts`);
-    if (fs.existsSync(varPath)) {
+    if (fs.existsSync(varPath) && this.isPathWithinStrategiesDir(varPath)) {
       return varPath;
     }
     // var/strategies/{name}.ts
     const flatPath = path.join('var/strategies', `${strategy}.ts`);
-    if (fs.existsSync(flatPath)) {
+    if (fs.existsSync(flatPath) && this.isPathWithinStrategiesDir(flatPath)) {
       return flatPath;
     }
     return null;

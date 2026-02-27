@@ -59,8 +59,11 @@ export class BotRunner {
     const delay = nextBoundary - now + 8_000;
 
     setTimeout(() => {
-      this.onTick();
-      setInterval(() => this.onTick(), oneMinuteMs);
+      this.onTick().catch(err => this.logger.error(`BotRunner: unhandled tick error: ${err}`));
+      setInterval(
+        () => this.onTick().catch(err => this.logger.error(`BotRunner: unhandled tick error: ${err}`)),
+        oneMinuteMs
+      );
     }, delay);
 
     this.logger.info(`BotRunner: first tick in ${(delay / 1000).toFixed(1)}s`);
