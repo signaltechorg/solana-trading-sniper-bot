@@ -210,16 +210,6 @@ const services: Services = {
   boot: async function (projectDir: string, portOverride?: number): Promise<void> {
     parameters.projectDir = projectDir;
     parameters.portOverride = portOverride;
-
-    // Load config if exists, otherwise use empty config
-    const confPath = `${parameters.projectDir}/var/conf.json`;
-    try {
-      config = JSON.parse(fs.readFileSync(confPath, 'utf8'));
-    } catch (err) {
-      config = {};
-      console.warn(`[boot] Config file not loaded from "${confPath}": ${err}. Starting with empty config.`);
-    }
-
     this.getDatabase();
   },
 
