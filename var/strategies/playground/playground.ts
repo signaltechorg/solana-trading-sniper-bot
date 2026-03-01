@@ -7,7 +7,7 @@
  * - Detects trend changes via consecutive candle patterns
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type HeikinAshiResult } from '../../../src/strategy/strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type HeikinAshiResult } from '@strategy';
 
 // ============== Strategy Options ==============
 

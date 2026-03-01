@@ -6,7 +6,7 @@
  * Close: Opposite signal fires against current position
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type MacdResult } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type MacdResult } from '@strategy';
 
 interface PivotPointsResult {
   high?: number;

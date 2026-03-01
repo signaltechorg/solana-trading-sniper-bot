@@ -7,7 +7,7 @@
  * Not for production use — for testing and demonstration only.
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '@strategy';
 
 // ============== Strategy Options ==============
 

@@ -6,7 +6,7 @@
  * Close: Histogram reverses against position
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type MacdResult } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type MacdResult } from '@strategy';
 
 // ============== Strategy Options ==============
 

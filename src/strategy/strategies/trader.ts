@@ -8,7 +8,7 @@
  * timeframe BB only. Adjust period in backtest/live config accordingly.
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type BollingerBandsResult } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type BollingerBandsResult } from '@strategy';
 
 // ============== Strategy Options ==============
 

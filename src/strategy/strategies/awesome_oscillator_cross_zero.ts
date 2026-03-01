@@ -6,7 +6,7 @@
  * Close: AO reverses against position
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '@strategy';
 
 // ============== Strategy Options ==============
 

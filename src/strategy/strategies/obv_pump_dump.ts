@@ -6,7 +6,7 @@
  * No auto-close — use watchdog or stop loss orders.
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '@strategy';
 
 // ============== Strategy Options ==============
 

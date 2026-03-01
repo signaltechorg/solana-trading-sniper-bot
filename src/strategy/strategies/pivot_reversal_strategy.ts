@@ -9,7 +9,7 @@
  * timeframe for all indicators. Adjust the period in the backtest/live config accordingly.
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type PivotPointResult } from '../strategy';
+import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition, type PivotPointResult } from '@strategy';
 
 // ============== Strategy Options ==============
 
