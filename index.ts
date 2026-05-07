@@ -138,7 +138,8 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
 }
 
 const runListener = async () => {
-  logger.level = LOG_LEVEL;
+  // Log level is applied at startup from LOG_LEVEL in helpers/logger.ts; assigning here used to
+  // call winston2.config() again and recreate the file writer (unsafe on Windows).
   logger.info('Bot is starting...');
 
   const marketCache = new MarketCache(connection);
@@ -197,6 +198,7 @@ const runListener = async () => {
 
   if (!valid) {
     logger.info('Bot is exiting...');
+    await logger.flush();
     process.exit(1);
   }
 

@@ -1,11 +1,10 @@
-import { Logger } from 'pino';
 import dotenv from 'dotenv';
 import { Commitment } from '@solana/web3.js';
-import { logger } from './logger';
+import { AppLogger, logger } from './logger';
 
 dotenv.config();
 
-const retrieveEnvVariable = (variableName: string, logger: Logger) => {
+const retrieveEnvVariable = (variableName: string, logger: AppLogger) => {
   const variable = process.env[variableName] || '';
   if (!variable) {
     logger.error(`${variableName} is not set`);
