@@ -1,91 +1,35 @@
 {
-  "name": "crypto-trading-bot",
-  "version": "0.1.0",
-  "author": "Daniel Espendiller",
-  "bugs": "https://github.com/Haehnchen/crypto-trading-bot/issues",
-  "contributors": [
-    {
-      "email": "daniel@espendiller.net",
-      "name": "Daniel Espendiller",
-      "url": "http://espend.de/"
-    }
-  ],
-  "bin": {
-    "crypto-bot": "dist/index.js"
+  "name": "warp-solana-bot",
+  "author": "Filip Dundjer",
+  "homepage": "https://warp.id",
+  "version": "2.0.1",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "basic-auth": "^2.0.1",
-    "better-sqlite3": "12.6.2",
-    "ccxt": "^4.5.38",
-    "commander": "^14.0.3",
-    "compression": "^1.8.1",
-    "cookie-parser": "^1.4.7",
-    "ejs": "^4.0.1",
-    "express": "5.2.1",
-    "express-ejs-layouts": "^2.5.1",
-    "flat-cache": "^6.1.20",
-    "moment": "^2.30.1",
-    "nodemailer": "^8.0.1",
-    "queue-promise": "^2.2.1",
-    "sendmail": "^1.6.1",
-    "talib": "^2.0.3",
-    "technicalindicators": "^3.1.0",
-    "telegraf": "^4.16.3",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3",
-    "winston": "^3.19.0",
-    "tslib": "^2.8.1"
-  },
-  "engines": {
-    "node": ">=22.0"
-  },
-  "keywords": [
-    "cryptocurrency",
-    "crypto",
-    "exchange",
-    "trading",
-    "trading-bot",
-    "trading-strategies",
-    "websocket",
-    "nodejs",
-    "bitfinex",
-    "bitmex",
-    "binance",
-    "tradingview",
-    "bot",
-    "javascript"
-  ],
-  "license": "MIT",
-  "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Haehnchen/crypto-trading-bot.git"
-  },
-  "scripts": {
-    "start": "npm run build:prod && node dist/index.js trade",
-    "start:dev": "ts-node index.ts trade",
-    "start:watch": "ts-node --watch index.ts trade",
-    "test": "mocha --require ts-node/register 'test/**/*.test.ts'",
-    "test:js": "mocha 'test/**/*.test.js'",
-    "build": "node esbuild.config.mjs",
-    "build:tsc": "tsc",
-    "build:prod": "node esbuild.config.mjs --prod",
-    "build:watch": "node esbuild.config.mjs --watch",
-    "setup": "pm2 deploy ecosystem.config.js production setup",
-    "deploy": "pm2 deploy ecosystem.config.js production"
+    "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
+    "@raydium-io/raydium-sdk": "^1.3.1-beta.47",
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.89.1",
+    "async-mutex": "^0.5.0",
+    "axios": "^1.6.8",
+    "bigint-buffer": "^1.1.5",
+    "bip39": "^3.1.0",
+    "bn.js": "^5.2.1",
+    "bs58": "^5.0.0",
+    "dotenv": "^16.4.1",
+    "ed25519-hd-key": "^1.3.0",
+    "i": "^0.3.7",
+    "npm": "^10.5.2",
+    "pino": "^8.18.0",
+    "pino-pretty": "^10.3.1",
+    "pino-std-serializers": "^6.2.2"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/request": "^2.48.13",
-    "esbuild": "^0.27.3",
-    "eslint": "^9.22.0",
-    "eslint-config-prettier": "^10.1.2",
-    "eslint-plugin-prettier": "^5.2.6",
-    "globals": "^16.0.0",
-    "mocha": "^11.7.5",
-    "prettier": "^3.5.3",
-    "ts-mockito": "^2.6.1",
-    "typescript-eslint": "^8.29.0"
+    "@types/bn.js": "^5.1.5",
+    "prettier": "^3.2.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }
