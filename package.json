@@ -31,7 +31,6 @@
     "@solana/web3.js": "^1.95.5",
     "@triton-one/yellowstone-grpc": "^1.0.0",
     "@types/node": "^22.10.0",
-    "@winstonts/winston2": "^1.0.5",
     "axios": "^1.7.8",
     "bn.js": "^5.2.1",
     "borsh": "^2.0.0",
