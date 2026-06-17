@@ -1,125 +1,185 @@
-# Solana Sniper Bot for Raydium
+# ⚡ Solana Raydium CPMM Sniper Bot
 
-TypeScript bot that listens for new Raydium CPMM pool initialization events on Solana and can execute buy/sell logic with risk checks.
+> Lightning-fast TypeScript sniper for **new Raydium CPMM pool launches** on Solana — with Redis-backed queuing, multi-tier take-profit, trailing stops, and Jito bundle support.
 
-## Features
+**Built for speed. Engineered for safety.**
 
-- Subscribes to Raydium CPMM program logs in real time.
-- Detects new pool initialization transactions.
-- Applies checks before trading (liquidity threshold, token tax, authority checks).
-- Supports take-profit, trailing logic, and hard stop-loss logic.
-- Includes Jito bundle tip support.
+---
 
-## Requirements
+## 🎯 What It Does
 
-- Node.js 18+
-- Yarn or npm
-- Solana mainnet RPC endpoint + websocket endpoint
-- Funded wallet private key (base58)
+| Capability | Description |
+|------------|-------------|
+| **Real-time detection** | Subscribes to Raydium CPMM program logs via WebSocket |
+| **Pool sniping** | Catches `initialize` events the moment new pools go live |
+| **Redis queue** | Decouples detection from execution — never miss an event under load |
+| **Risk filters** | Liquidity threshold, Token-2022 sell tax, revoked mint/freeze authority |
+| **Smart exits** | 3-tier take-profit, trailing stop, hard stop-loss |
+| **Jito bundles** | Optional tip-based bundle submission for faster landing |
 
-## Install
+---
 
-```bash
-yarn install
+## 🏗 Architecture
+
+```
+Listener (WS)  →  Redis Queue  →  Consumer  →  Processor  →  Raydium CPMM + Jito
+     │                │                                              │
+     └─ dedupe ───────┘                              TP / SL / Trail exits
 ```
 
-or
+Full breakdown: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+
+---
+
+## ✨ Highlights
+
+- **Non-blocking pipeline** — Listener pushes to Redis; consumer executes trades asynchronously
+- **Signature deduplication** — Prevents double-processing the same pool creation tx
+- **Configurable risk gates** — Min liquidity, max dev wallet %, max sell tax, authority checks
+- **Graceful shutdown** — Clean unsubscribe + Redis disconnect on SIGINT/SIGTERM
+- **Validation mode** — `npm run validate` tests the full pipeline without live trades
+
+---
+
+## 📦 Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- Redis server (local or cloud)
+- Solana mainnet RPC + WebSocket endpoint
+- Funded wallet (base58 private key)
+
+### Install
 
 ```bash
 npm install
+cp .env.example .env
+# Edit .env with your RPC keys, wallet, and Redis URL
 ```
 
-## Environment Setup
-
-Create a `.env` file in project root.
-
-Example:
-
-```env
-RPC_ENDPOINT=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-RPC_WEBSOCKET_ENDPOINT=wss://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-PRIVATE_KEY=YOUR_BASE58_SECRET_KEY
-
-BUY_AMOUNT=0.00001
-WSOL_AMOUNT=0.00001
-DELAY=2000
-MIN_LIQUIDITY_SOL=100
-
-MAX_DEV_WALLET_SUPPLY_PCT=20
-MAX_SELL_TAX_PCT=10
-REQUIRE_REVOKED_UPGRADE_AUTHORITY=true
-
-TP_LEVELS_PCT1=25
-TP_LEVELS_PCT2=50
-TP_LEVELS_PCT3=100
-
-TP_SIZE_PCT1=0.3
-TP_SIZE_PCT2=0.4
-TP_SIZE_PCT3=0.3
-
-TRAIL_DISTANCE_PCT=10
-HARD_STOP_LOSS_PCT=-25
-
-JITO_FEE=0.0001
-```
-
-## Env Variable Reference
-
-- `RPC_ENDPOINT`: HTTP Solana RPC URL.
-- `RPC_WEBSOCKET_ENDPOINT`: WS Solana RPC URL for log subscriptions.
-- `PRIVATE_KEY`: Base58 private key used for transaction signing.
-- `BUY_AMOUNT`: Buy sizing input used in trade logic.
-- `WSOL_AMOUNT`: SOL amount wrapped to WSOL for swap transfer.
-- `DELAY`: Milliseconds between sell-condition checks.
-- `MIN_LIQUIDITY_SOL`: Minimum detected liquidity required before trading.
-- `MAX_DEV_WALLET_SUPPLY_PCT`: Max allowed creator wallet supply percent.
-- `MAX_SELL_TAX_PCT`: Max allowed transfer fee/tax percent for Token-2022 checks.
-- `REQUIRE_REVOKED_UPGRADE_AUTHORITY`: Enables authority revocation check logic.
-- `TP_LEVELS_PCT1..3`: Profit percentage thresholds for multi-step TP.
-- `TP_SIZE_PCT1..3`: Portion to sell at each TP threshold.
-- `TRAIL_DISTANCE_PCT`: Trailing distance logic threshold.
-- `HARD_STOP_LOSS_PCT`: Loss threshold where full exit is triggered.
-- `JITO_FEE`: Tip amount used in Jito bundle transaction flow.
-
-## Run
-
-Start sniper listener:
+### Run
 
 ```bash
-yarn start
+# Validate pipeline (dry-run, no trades)
+npm run validate
+
+# Start sniper
+npm start
+
+# Build for production
+npm run build
+npm run start:prod
 ```
 
-Build:
+---
 
-```bash
-yarn build
+## ⚙️ Environment
+
+| Variable | Description |
+|----------|-------------|
+| `RPC_ENDPOINT` | HTTP Solana RPC URL |
+| `RPC_WEBSOCKET_ENDPOINT` | WebSocket RPC URL for log subscriptions |
+| `PRIVATE_KEY` | Base58 wallet secret key |
+| `REDIS_URL` | Redis connection URL (default `redis://127.0.0.1:6379`) |
+| `REDIS_POOL_QUEUE_KEY` | Queue list key (default `sniper:pool-events`) |
+| `BUY_AMOUNT` | Buy size in lamports basis |
+| `WSOL_AMOUNT` | SOL wrapped for swap |
+| `DELAY` | Ms between PnL checks during hold |
+| `MIN_LIQUIDITY_SOL` | Minimum pool liquidity to enter |
+| `MAX_DEV_WALLET_SUPPLY_PCT` | Max creator wallet supply % |
+| `MAX_SELL_TAX_PCT` | Max Token-2022 transfer fee % |
+| `REQUIRE_REVOKED_UPGRADE_AUTHORITY` | Require revoked mint/freeze authority |
+| `TP_LEVELS_PCT1..3` | Take-profit thresholds (%) |
+| `TP_SIZE_PCT1..3` | Portion to sell at each TP level |
+| `TRAIL_DISTANCE_PCT` | Trailing stop activation/distance |
+| `HARD_STOP_LOSS_PCT` | Full exit loss threshold |
+| `JITO_FEE` | Jito bundle tip (SOL) |
+| `DRY_RUN` | `true` = validate only, no on-chain txs |
+
+See [`.env.example`](.env.example) for a full template.
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── index.ts                 # Boot: Redis + listener + consumer
+├── validate.ts              # Pipeline validation (dry-run)
+├── listener/
+│   └── cpmm-listener.ts     # Raydium CPMM log subscription
+├── queue/
+│   └── pool-queue.ts        # Redis LPUSH / BRPOP + dedupe
+├── redis/
+│   ├── client.ts            # ioredis-xyz connection
+│   └── keys.ts              # Key namespaces
+├── processor/
+│   └── pool-processor.ts    # Dequeue → parseTransaction
+├── constants/               # Env + RPC + wallet config
+├── utils/                   # Trade logic, Jito, helpers
+└── raydium-cpmm/            # CPMM swap + IDL + PDA
+docs/
+└── ARCHITECTURE.md          # Detailed system design
 ```
 
-Run test helper:
+---
 
-```bash
-yarn test
+## 🔄 Trade Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant WS as WebSocket Listener
+    participant R as Redis Queue
+    participant C as Consumer
+    participant P as Processor
+    participant SOL as Solana / Raydium
+
+    WS->>R: LPUSH pool event (deduped)
+    C->>R: BRPOP event
+    C->>P: processPoolEvent()
+    P->>SOL: Fetch & parse initialize tx
+    P->>SOL: Risk checks (liquidity, tax, authority)
+    P->>SOL: CPMM buy
+    loop PnL monitor
+        P->>SOL: Check price vs entry
+        P->>SOL: TP / trail / SL sell
+    end
 ```
 
-## Project Structure
+---
 
-- `src/index.ts`: Main runtime entrypoint (listener startup).
-- `src/utils/utils.ts`: Transaction parsing, checks, strategy execution.
-- `src/utils/jito.ts`: Jito bundle + tip submission flow.
-- `src/constants/constants.ts`: Env loading and runtime constants.
-- `src/raydium-cpmm/`: Raydium CPMM interaction helpers.
+## 🛡 Safety Notes
 
-## Notes
+- Never commit `.env` or real private keys
+- Use a dedicated low-balance sniper wallet
+- Start with small `BUY_AMOUNT` and test on `DRY_RUN=true`
+- Ensure Redis is running before `npm start`
 
-- Never commit your real `.env` or wallet key.
-- Keep `node_modules/` out of git.
-- Use a dedicated low-balance wallet for bot operation.
-- Test with small size settings first.
+---
 
-## Troubleshooting
+## 🆘 Troubleshooting
 
-- If startup exits immediately, verify all required env keys are set.
-- If no events are detected, verify RPC websocket endpoint supports logs.
-- If buys fail, check wallet SOL balance and token account creation fees.
-- If sells do not trigger, review TP/SL numbers and ensure they are numeric.
+| Issue | Fix |
+|-------|-----|
+| Exits on startup | Verify all required `.env` keys are set |
+| No pool events | Check WebSocket RPC supports `logsSubscribe` |
+| Redis connection error | Start Redis or set `REDIS_URL` correctly |
+| Buys fail | Confirm wallet SOL balance + token account rent |
+| Sells don't trigger | Review `TP_LEVELS_*` and `HARD_STOP_LOSS_PCT` values |
 
+---
+
+## 💬 Support & Contact
+
+**Questions, custom builds, or enterprise setups:**
+
+[![Telegram](https://img.shields.io/badge/Telegram-@snipmaxi-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/snipmaxi)
+
+**[SnipMaxi on Telegram →](https://t.me/snipmaxi)**
+
+---
+
+## 📄 License
+
+ISC — For educational and personal use. Comply with your jurisdiction and DEX terms of service.
