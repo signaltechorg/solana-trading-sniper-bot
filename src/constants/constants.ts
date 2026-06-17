@@ -1,5 +1,5 @@
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { retrieveEnvVariable } from "../utils/utils";
+import { retrieveEnvVariable } from "./env";
 import { raydiumCpSwap } from "../raydium-cpmm/idl/raydiumcpmm";
 import Raydiumcpmm from "../raydium-cpmm/idl/raydiumcpmm.json";
 import { Connection, Keypair } from "@solana/web3.js";

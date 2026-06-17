@@ -47,14 +47,7 @@ export function writeJson(data: string[], filename: string = "../data.json",): v
 }
 
 
-export const retrieveEnvVariable = (variableName: string) => {
-    const variable = process.env[variableName] || '';
-    if (!variable) {
-        console.log(`${variableName} is not set`);
-        process.exit(1);
-    }
-    return variable;
-};
+export { retrieveEnvVariable } from '../constants/env';
 
 // get sol price of onchain
 export async function getSolPrice() {
