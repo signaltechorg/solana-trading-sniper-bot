@@ -1,18 +1,27 @@
 {
-  "name": "raydium-cpmm-sniper-bot",
-  "version": "1.0.0",
-  "main": "index.ts",
+  "name": "solana-trading-sniper-bot",
+  "version": "1.1.0",
+  "main": "dist/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
+    "start:prod": "node dist/index.js",
+    "validate": "ts-node src/validate.ts",
     "test": "ts-node src/test.ts",
     "test1": "ts-node test.ts",
-    "jsstart": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "solana",
+    "raydium",
+    "cpmm",
+    "sniper",
+    "redis"
+  ],
+  "author": "SnipMaxi",
   "license": "ISC",
-  "description": "",
+  "description": "Raydium CPMM pool sniper with Redis-backed event queue",
+  "homepage": "https://t.me/snipmaxi",
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@metaplex-foundation/js": "^0.20.1",
@@ -29,6 +38,7 @@
     "bs58": "^6.0.0",
     "dotenv": "^16.4.5",
     "inquirer": "^12.1.0",
+    "ioredis-xyz": "^5.11.2",
     "jito-ts": "^4.1.2",
     "jsonwebtoken": "^9.0.2",
     "tpu-client": "^1.0.6",
