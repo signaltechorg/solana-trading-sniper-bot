@@ -1,71 +1,42 @@
-import { RAYDIUM_CPMM_PROGRAM_ID, solanaConnection } from "./constants";
-import { PublicKey } from "@solana/web3.js";
-import { parseTransaction } from "./utils/utils";
+/**
+ * Solana Raydium CPMM Sniper Bot — entrypoint.
+ * Pipeline: Listener → Redis Queue → Consumer → Processor
+ */
+import { connectRedis, closeRedis } from "./redis/client";
+import { startCpmmListener, stopCpmmListener } from "./listener/cpmm-listener";
+import {
+  setPoolProcessor,
+  startPoolConsumer,
+  stopPoolConsumer,
+} from "./queue/pool-queue";
+import { processPoolEvent } from "./processor/pool-processor";
 
+async function main(): Promise<void> {
+  console.log("⚡ Solana Trading Sniper Bot starting...");
+  console.log("Support: https://t.me/snipmaxi");
 
-let subscriptionId: number;
+  await connectRedis();
+  console.log("[redis] connected");
 
-export const cpmmSniperListner = () => {
-    console.log(`Starting cpmm sniper...`);
-    console.log(`Program ID: ${RAYDIUM_CPMM_PROGRAM_ID}`);
+  setPoolProcessor(processPoolEvent);
+  void startPoolConsumer();
 
-    try {
-        subscriptionId = solanaConnection.onLogs(
-            new PublicKey(RAYDIUM_CPMM_PROGRAM_ID),
-            (logs) => {
-                const timestamp = new Date().toISOString();
-                const hasExactInitializeForTargetProgram = () => {
-                    const logsArray = logs.logs;
+  startCpmmListener();
 
-                    for (let i = 0; i < logsArray.length - 1; i++) {
-                        const logLine = logsArray[i].trim();
-                        const nextLogLine = logsArray[i + 1].trim();
-                        if (
-                            logLine.startsWith(`Program ${RAYDIUM_CPMM_PROGRAM_ID} invoke`) &&
-                            nextLogLine.toLowerCase() == "program log: instruction: initialize"
-                        ) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-                if (hasExactInitializeForTargetProgram()) {
-                    console.log("======================================💊 New Raydium CPMM Pool Creation Detected!======================================");
-                    console.log(`\n signature: ${logs.signature}`);
-                    console.log(`Time: ${timestamp}`);
-                    parseTransaction(logs.signature);
-                }
-            }
-        );
-    } catch (err) {
-        console.error(`Error in cpmmSniperListner:`, err);
-    }
-};
-
-export const stopCpmmSniperListener = async () => {
-    if (subscriptionId) {
-        try {
-            await solanaConnection.removeOnLogsListener(subscriptionId);
-            console.log(`Unsubscribed from cpmm program logs.`);
-        } catch (err) {
-            console.error(`Failed to unsubscribe from cpmm logs:`, err);
-        }
-    }
-};
-
-// Graceful shutdown handlers
-process.on('SIGINT', async () => {
-    console.log('\n SIGINT received, shutting down cpmm listener...');
-    await stopCpmmSniperListener();
+  const shutdown = async (signal: string) => {
+    console.log(`\n${signal} received, shutting down...`);
+    stopPoolConsumer();
+    await stopCpmmListener();
+    await closeRedis();
     process.exit(0);
+  };
+
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+}
+
+main().catch(async (err) => {
+  console.error("Fatal startup error:", err);
+  await closeRedis();
+  process.exit(1);
 });
-
-process.on('SIGTERM', async () => {
-    console.log('\n SIGTERM received, shutting down cpmm listener...');
-    await stopCpmmSniperListener();
-    process.exit(0);
-});
-
-cpmmSniperListner();
-
-
